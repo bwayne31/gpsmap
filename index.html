@@ -23,6 +23,11 @@
         #scorecard-btn .scorecard-icon path {
             fill: currentColor;
         }
+        #hole-map {
+            width: 100%;
+            height: 40vh;
+            min-height: 300px;
+        }
     </style>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p418n2iV1tN8a64010185c786c2688029b35b431c9f280a3a4115c90b85a3637" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-4d26210f94086144e1a49479b4d45582f3484f48a12b6f1" crossorigin=""></script>
@@ -133,7 +138,7 @@
             </button>
         </div>
 
-        <div id="map-view" class="hidden flex flex-col justify-between h-full">
+        <div id="map-view" class="hidden flex-col justify-between h-full">
             <div>
                 <h1 class="text-3xl font-extrabold text-zinc-900 dark:text-zinc-100 text-center mb-6">Hole Overview</h1>
                 <div id="hole-map" class="w-full h-80 rounded-2xl shadow-inner"></div>
@@ -143,7 +148,7 @@
             </button>
         </div>
 
-        <div id="score-entry-view" class="hidden flex flex-col justify-between h-full">
+        <div id="score-entry-view" class="hidden flex-col justify-between h-full">
             <div>
                 <h1 id="score-entry-title" class="text-3xl font-extrabold text-zinc-900 dark:text-zinc-100 text-center mb-4">Score Hole 1</h1>
                 
@@ -168,7 +173,7 @@
             </button>
         </div>
 
-        <div id="scorecard-view" class="hidden flex flex-col justify-between h-full">
+        <div id="scorecard-view" class="hidden flex-col justify-between h-full">
             <div>
                 <h1 class="text-3xl font-extrabold text-zinc-900 dark:text-zinc-100 text-center mb-6">Scorecard</h1>
                 <div class="bg-zinc-100 dark:bg-zinc-700 rounded-2xl p-4 shadow-inner transition-colors">
@@ -214,6 +219,7 @@
             const finalProximityThreshold = 50;
             let watcherId;
             let shotStartLocation = null;
+            let userLocationMarker = null;
 
             // NEW STATE VARIABLES
             let currentHoleIndex = 0;
@@ -451,48 +457,82 @@
                 document.getElementById('scorecard-view').classList.add('hidden');
                 document.getElementById('map-view').classList.remove('hidden');
 
-                setTimeout(() => {
-                    if (!mapInstance) {
-                        mapInstance = L.map('hole-map').setView([courseData.holes[currentHoleIndex].center[0], courseData.holes[currentHoleIndex].center[1]], 16);
-                        
-                        L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png', {
-                            attribution: 'Map data &copy; <a href="http://www.openstreetmap.org/">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                        }).addTo(mapInstance);
+                if (!mapInstance) {
+                    mapInstance = L.map('hole-map', { zoomControl: false });
+                    
+                    L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',{
+                        maxZoom: 20,
+                        subdomains:['mt0','mt1','mt2','mt3'],
+                        attribution: 'Map data &copy; <a href="https://www.google.com/maps">Google Maps</a>'
+                    }).addTo(mapInstance);
+                }
+
+                navigator.geolocation.getCurrentPosition((position) => {
+                    const userCoords = [position.coords.latitude, position.coords.longitude];
+                    const currentHole = courseData.holes[currentHoleIndex];
+                    const mapCenter = [currentHole.center[0], currentHole.center[1]];
+                    
+                    mapInstance.setView(mapCenter, 18);
+                    
+                    if (userLocationMarker) {
+                        userLocationMarker.setLatLng(userCoords);
+                    } else {
+                        userLocationMarker = L.circle(userCoords, { radius: 3, color: 'rgb(239 68 68)', fillColor: 'rgb(239 68 68)', fillOpacity: 0.8 }).addTo(mapInstance);
                     }
-                    mapInstance.invalidateSize();
+                    
+                    mapInstance.whenReady(() => mapInstance.invalidateSize());
+
                     updateMapMarkers();
-                }, 1);
+                });
             }
 
             function updateMapMarkers() {
                 if (!mapInstance) return;
 
-                // Clear existing markers
                 holeMarkers.forEach(marker => marker.remove());
                 holeMarkers = [];
 
                 const currentHole = courseData.holes[currentHoleIndex];
-                const mapCenter = [currentHole.center[0], currentHole.center[1]];
-                mapInstance.setView(mapCenter, 16);
 
-                // Add green markers
-                holeMarkers.push(L.marker(currentHole.front).addTo(mapInstance).bindPopup("Front of Green").openPopup());
-                holeMarkers.push(L.marker(currentHole.center).addTo(mapInstance).bindPopup("Center of Green"));
-                holeMarkers.push(L.marker(currentHole.back).addTo(mapInstance).bindPopup("Back of Green"));
+                holeMarkers.push(L.marker(currentHole.front, { icon: createColoredIcon('red') }).addTo(mapInstance).bindPopup("Front of Green"));
+                holeMarkers.push(L.marker(currentHole.center, { icon: createColoredIcon('white') }).addTo(mapInstance).bindPopup("Center of Green"));
+                holeMarkers.push(L.marker(currentHole.back, { icon: createColoredIcon('blue') }).addTo(mapInstance).bindPopup("Back of Green"));
+                holeMarkers.push(L.marker(currentHole.tee, { icon: createColoredIcon('gray') }).addTo(mapInstance).bindPopup("Tee Box"));
 
-                // Add tee box marker
-                holeMarkers.push(L.marker(currentHole.tee).addTo(mapInstance).bindPopup("Tee Box"));
-
-                // Add hazard markers
                 currentHole.hazards.forEach(hazard => {
                     if (hazard.location) {
-                        holeMarkers.push(L.marker(hazard.location).addTo(mapInstance).bindPopup(hazard.name));
+                        holeMarkers.push(L.marker(hazard.location, { icon: createHazardIcon(hazard.name) }).addTo(mapInstance).bindPopup(hazard.name));
                     }
                 });
+            }
 
-                // Fit map to markers
-                const group = new L.featureGroup(holeMarkers);
-                mapInstance.fitBounds(group.getBounds().pad(0.1));
+            function createColoredIcon(color) {
+                return L.divIcon({
+                    className: `text-${color}-500`,
+                    html: `<svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>`,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
+            }
+
+            function createHazardIcon(name) {
+                let colorClass = 'text-amber-500';
+                let svgPath = 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/><path d="M12 10V6c-2.21 0-4 1.79-4 4h4z"'; // Default to bunker
+                
+                const lowerName = name.toLowerCase();
+                if (lowerName.includes("water")) {
+                    colorClass = 'text-cyan-500';
+                    svgPath = 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/><path d="M12 12c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/><path d="M12 8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"';
+                }
+
+                const svgHtml = `<svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">${svgPath}</svg>`;
+
+                return L.divIcon({
+                    className: colorClass,
+                    html: svgHtml,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
             }
 
             function saveScoreAndAdvance(score) {
@@ -536,6 +576,10 @@
                             
                             const currentHole = courseData.holes[currentHoleIndex];
                             
+                            if (userLocationMarker) {
+                                userLocationMarker.setLatLng([userLat, userLon]);
+                            }
+
                             // Condition for auto-advance to score entry
                             if (isScorecardEnabled) {
                                 if (currentHoleIndex === courseData.holes.length - 1) {
@@ -753,6 +797,11 @@
                 if (diff === 1) return 'text-orange-500 font-extrabold';  // Bogey
                 if (diff >= 2) return 'text-red-500 font-extrabold';      // Double Bogey or worse
                 return '';
+            }
+
+            // Dark Mode toggle
+            if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
             }
         })();
     </script>
