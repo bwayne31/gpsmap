@@ -189,431 +189,429 @@
     </div>
 
     <script>
-        const apiKey = 'YOUR_GOOGLE_MAPS_API_KEY';
-        const courseData = {
-            "name": "Local Golf Course",
-            "holes": [
-                { "hole": 1, "par": 4, "lat": 39.754719, "lng": -104.996147 },
-                { "hole": 2, "par": 5, "lat": 39.753890, "lng": -105.000305 },
-                { "hole": 3, "par": 3, "lat": 39.752511, "lng": -104.999557 },
-                { "hole": 4, "par": 4, "lat": 39.751688, "lng": -104.997232 },
-                { "hole": 5, "par": 5, "lat": 39.750849, "lng": -104.994463 },
-                { "hole": 6, "par": 3, "lat": 39.752317, "lng": -104.993078 },
-                { "hole": 7, "par": 4, "lat": 39.754026, "lng": -104.992641 },
-                { "hole": 8, "par": 4, "lat": 39.754881, "lng": -104.994709 },
-                { "hole": 9, "par": 5, "lat": 39.755677, "lng": -104.996928 },
-                { "hole": 10, "par": 4, "lat": 39.756214, "lng": -104.999580 },
-                { "hole": 11, "par": 4, "lat": 39.757833, "lng": -105.000858 },
-                { "hole": 12, "par": 3, "lat": 39.759231, "lng": -105.001607 },
-                { "hole": 13, "par": 5, "lat": 39.760114, "lng": -105.000109 },
-                { "hole": 14, "par": 4, "lat": 39.758963, "lng": -104.998462 },
-                { "hole": 15, "par": 4, "lat": 39.757864, "lng": -104.997184 },
-                { "hole": 16, "par": 3, "lat": 39.756910, "lng": -104.995955 },
-                { "hole": 17, "par": 4, "lat": 39.755866, "lng": -104.994348 },
-                { "hole": 18, "par": 5, "lat": 39.754719, "lng": -104.996147 }
-            ]
-        };
+        (function() {
+            const apiKey = 'YOUR_GOOGLE_MAPS_API_KEY';
+            const courseData = {
+                "name": "Local Golf Course",
+                "holes": [
+                    { "hole": 1, "par": 4, "lat": 39.754719, "lng": -104.996147 },
+                    { "hole": 2, "par": 5, "lat": 39.753890, "lng": -105.000305 },
+                    { "hole": 3, "par": 3, "lat": 39.752511, "lng": -104.999557 },
+                    { "hole": 4, "par": 4, "lat": 39.751688, "lng": -104.997232 },
+                    { "hole": 5, "par": 5, "lat": 39.750849, "lng": -104.994463 },
+                    { "hole": 6, "par": 3, "lat": 39.752317, "lng": -104.993078 },
+                    { "hole": 7, "par": 4, "lat": 39.754026, "lng": -104.992641 },
+                    { "hole": 8, "par": 4, "lat": 39.754881, "lng": -104.994709 },
+                    { "hole": 9, "par": 5, "lat": 39.755677, "lng": -104.996928 },
+                    { "hole": 10, "par": 4, "lat": 39.756214, "lng": -104.999580 },
+                    { "hole": 11, "par": 4, "lat": 39.757833, "lng": -105.000858 },
+                    { "hole": 12, "par": 3, "lat": 39.759231, "lng": -105.001607 },
+                    { "hole": 13, "par": 5, "lat": 39.760114, "lng": -105.000109 },
+                    { "hole": 14, "par": 4, "lat": 39.758963, "lng": -104.998462 },
+                    { "hole": 15, "par": 4, "lat": 39.757864, "lng": -104.997184 },
+                    { "hole": 16, "par": 3, "lat": 39.756910, "lng": -104.995955 },
+                    { "hole": 17, "par": 4, "lat": 39.755866, "lng": -104.994348 },
+                    { "hole": 18, "par": 5, "lat": 39.754719, "lng": -104.996147 }
+                ]
+            };
 
-        const state = {
-            mode: null, // "scorecard" or "gps"
-            players: [],
-            currentHoleIndex: 0,
-            isEditingScore: false,
-            currentPlayerIndex: 0,
-            scores: [],
-            wakeLock: null,
-            map: null,
-            userMarker: null,
-            courseMarkers: [],
-        };
+            const state = {
+                mode: null,
+                players: [],
+                currentHoleIndex: 0,
+                isEditingScore: false,
+                currentPlayerIndex: 0,
+                wakeLock: null,
+                map: null,
+                userMarker: null,
+                courseMarkers: [],
+            };
 
-        const elements = {
-            setupView: document.getElementById('setup-view'),
-            mainView: document.getElementById('main-view'),
-            scorecardView: document.getElementById('scorecard-view'),
-            scoreEntryView: document.getElementById('score-entry-view'),
-            modeScorecardBtn: document.getElementById('mode-scorecard-btn'),
-            modeGpsOnlyBtn: document.getElementById('mode-gps-only-btn'),
-            playerSetupOptions: document.getElementById('player-setup-options'),
-            playerCountBtns: document.querySelectorAll('.player-count-btn'),
-            playerNameInputs: document.getElementById('player-name-inputs'),
-            startScorecardRoundBtn: document.getElementById('start-scorecard-round-btn'),
-            courseName: document.getElementById('course-name'),
-            holeInfo: document.getElementById('hole-info'),
-            distanceFront: document.getElementById('distance-front'),
-            distanceCenter: document.getElementById('distance-center'),
-            distanceBack: document.getElementById('distance-back'),
-            mapBtn: document.getElementById('map-btn'),
-            scorecardBtn: document.getElementById('scorecard-btn'),
-            prevHoleBtn: document.getElementById('prev-hole-btn'),
-            nextHoleBtn: document.getElementById('next-hole-btn'),
-            endRoundBtn: document.getElementById('end-round-btn'),
-            scorecardEndRoundBtn: document.getElementById('scorecard-end-round-btn'),
-            scorecardBody: document.getElementById('scorecard-body'),
-            scorecardTotals: document.getElementById('scorecard-totals'),
-            playerHeaders: document.getElementById('player-headers'),
-            scoreEntryTitle: document.getElementById('score-entry-title'),
-            scoreEntryMessage: document.getElementById('score-entry-message'),
-            scoreButtons: document.querySelectorAll('.score-btn'),
-            scoreBackBtn: document.getElementById('score-back-btn'),
-            scoreNextBtn: document.getElementById('score-next-btn'),
-            wakeLockBtn: document.getElementById('wake-lock-btn'),
-            wakeLockIcon: document.getElementById('wake-lock-icon'),
-            wakeLockText: document.getElementById('wake-lock-text'),
-        };
+            const elements = {
+                setupView: document.getElementById('setup-view'),
+                mainView: document.getElementById('main-view'),
+                scorecardView: document.getElementById('scorecard-view'),
+                scoreEntryView: document.getElementById('score-entry-view'),
+                modeScorecardBtn: document.getElementById('mode-scorecard-btn'),
+                modeGpsOnlyBtn: document.getElementById('mode-gps-only-btn'),
+                playerSetupOptions: document.getElementById('player-setup-options'),
+                playerCountBtns: document.querySelectorAll('.player-count-btn'),
+                playerNameInputs: document.getElementById('player-name-inputs'),
+                startScorecardRoundBtn: document.getElementById('start-scorecard-round-btn'),
+                courseName: document.getElementById('course-name'),
+                holeInfo: document.getElementById('hole-info'),
+                distanceFront: document.getElementById('distance-front'),
+                distanceCenter: document.getElementById('distance-center'),
+                distanceBack: document.getElementById('distance-back'),
+                mapBtn: document.getElementById('map-btn'),
+                scorecardBtn: document.getElementById('scorecard-btn'),
+                prevHoleBtn: document.getElementById('prev-hole-btn'),
+                nextHoleBtn: document.getElementById('next-hole-btn'),
+                endRoundBtn: document.getElementById('end-round-btn'),
+                scorecardEndRoundBtn: document.getElementById('scorecard-end-round-btn'),
+                scorecardBody: document.getElementById('scorecard-body'),
+                scorecardTotals: document.getElementById('scorecard-totals'),
+                playerHeaders: document.getElementById('player-headers'),
+                scoreEntryTitle: document.getElementById('score-entry-title'),
+                scoreEntryMessage: document.getElementById('score-entry-message'),
+                scoreButtons: document.querySelectorAll('.score-btn'),
+                scoreBackBtn: document.getElementById('score-back-btn'),
+                scoreNextBtn: document.getElementById('score-next-btn'),
+                wakeLockBtn: document.getElementById('wake-lock-btn'),
+                wakeLockIcon: document.getElementById('wake-lock-icon'),
+                wakeLockText: document.getElementById('wake-lock-text'),
+                modeButtons: document.getElementById('mode-buttons'),
+            };
 
-        // Screen Wake Lock
-        const toggleWakeLock = async () => {
-            if ('wakeLock' in navigator) {
-                if (state.wakeLock !== null) {
-                    try {
-                        await state.wakeLock.release();
-                        state.wakeLock = null;
-                        elements.wakeLockIcon.classList.remove('text-blue-500');
-                        elements.wakeLockIcon.classList.add('text-zinc-800', 'dark:text-zinc-200');
-                        elements.wakeLockText.textContent = 'Keep Screen On';
-                        console.log('Wake lock released.');
-                    } catch (err) {
-                        console.error(`${err.name}, ${err.message}`);
+            function toggleWakeLock() {
+                if ('wakeLock' in navigator) {
+                    if (state.wakeLock !== null) {
+                        try {
+                            state.wakeLock.release().then(() => {
+                                state.wakeLock = null;
+                                elements.wakeLockIcon.classList.remove('text-blue-500');
+                                elements.wakeLockIcon.classList.add('text-zinc-800', 'dark:text-zinc-200');
+                                elements.wakeLockText.textContent = 'Keep Screen On';
+                                console.log('Wake lock released.');
+                            });
+                        } catch (err) {
+                            console.error(`${err.name}, ${err.message}`);
+                        }
+                    } else {
+                        try {
+                            navigator.wakeLock.request('screen').then(lock => {
+                                state.wakeLock = lock;
+                                state.wakeLock.addEventListener('release', () => {
+                                    console.log('Wake lock was released by the OS.');
+                                    state.wakeLock = null;
+                                    elements.wakeLockIcon.classList.remove('text-blue-500');
+                                    elements.wakeLockIcon.classList.add('text-zinc-800', 'dark:text-zinc-200');
+                                    elements.wakeLockText.textContent = 'Keep Screen On';
+                                });
+                                elements.wakeLockIcon.classList.remove('text-zinc-800', 'dark:text-zinc-200');
+                                elements.wakeLockIcon.classList.add('text-blue-500');
+                                elements.wakeLockText.textContent = 'Screen On';
+                                console.log('Wake lock activated.');
+                            });
+                        } catch (err) {
+                            console.error(`${err.name}, ${err.message}`);
+                        }
                     }
                 } else {
-                    try {
-                        state.wakeLock = await navigator.wakeLock.request('screen');
-                        state.wakeLock.addEventListener('release', () => {
-                            console.log('Wake lock was released by the OS.');
-                            state.wakeLock = null;
-                            elements.wakeLockIcon.classList.remove('text-blue-500');
-                            elements.wakeLockIcon.classList.add('text-zinc-800', 'dark:text-zinc-200');
-                            elements.wakeLockText.textContent = 'Keep Screen On';
-                        });
-                        elements.wakeLockIcon.classList.remove('text-zinc-800', 'dark:text-zinc-200');
-                        elements.wakeLockIcon.classList.add('text-blue-500');
-                        elements.wakeLockText.textContent = 'Screen On';
-                        console.log('Wake lock activated.');
-                    } catch (err) {
-                        console.error(`${err.name}, ${err.message}`);
-                    }
+                    console.log('Wake Lock API not supported.');
                 }
-            } else {
-                console.log('Wake Lock API not supported.');
             }
-        };
 
-        elements.wakeLockBtn.addEventListener('click', toggleWakeLock);
+            elements.wakeLockBtn.addEventListener('click', toggleWakeLock);
 
-        // UI View Transitions
-        function showView(viewId) {
-            ['setup-view', 'main-view', 'scorecard-view', 'score-entry-view'].forEach(id => {
-                document.getElementById(id).classList.add('hidden');
+            function showView(viewId) {
+                ['setup-view', 'main-view', 'scorecard-view', 'score-entry-view'].forEach(id => {
+                    document.getElementById(id).classList.add('hidden');
+                });
+                document.getElementById(viewId).classList.remove('hidden');
+                document.getElementById(viewId).classList.add('flex');
+            }
+
+            function initMap() {
+                if (state.map) {
+                    state.map.remove();
+                }
+                state.map = L.map('map').setView([courseData.holes[0].lat, courseData.holes[0].lng], 17);
+                L.tileLayer.provider('Esri.WorldImagery').addTo(state.map);
+            }
+
+            function showMap() {
+                if (!state.map) {
+                    initMap();
+                }
+                showView('main-view');
+                setTimeout(() => {
+                    state.map.invalidateSize();
+                    updateMapMarkers();
+                }, 0);
+                updateDistances();
+                if (navigator.geolocation) {
+                    navigator.geolocation.watchPosition(updateUserPosition, handleError, { enableHighAccuracy: true });
+                }
+            }
+
+            function updateMapMarkers() {
+                if (!state.map) return;
+                state.courseMarkers.forEach(marker => state.map.removeLayer(marker));
+                state.courseMarkers = [];
+
+                const currentHole = courseData.holes[state.currentHoleIndex];
+                const markerOptions = {
+                    icon: L.divIcon({
+                        className: 'map-marker-icon',
+                        html: `<div class="bg-blue-600 text-white font-bold p-2 rounded-full shadow-lg text-sm">Hole ${currentHole.hole}</div>`,
+                        iconSize: [40, 40],
+                        iconAnchor: [20, 40]
+                    })
+                };
+                const marker = L.marker([currentHole.lat, currentHole.lng], markerOptions).addTo(state.map);
+                state.courseMarkers.push(marker);
+
+                state.map.setView([currentHole.lat, currentHole.lng], 17);
+            }
+
+            function updateUserPosition(position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                const userLatLng = L.latLng(lat, lng);
+                
+                if (state.userMarker) {
+                    state.userMarker.setLatLng(userLatLng);
+                } else {
+                    state.userMarker = L.marker(userLatLng).addTo(state.map);
+                }
+                
+                updateDistances(userLatLng);
+            }
+
+            function updateDistances(userLatLng) {
+                const currentHole = courseData.holes[state.currentHoleIndex];
+                const holeLatLng = L.latLng(currentHole.lat, currentHole.lng);
+                
+                let frontDistance = '--';
+                let centerDistance = '--';
+                let backDistance = '--';
+
+                if (userLatLng) {
+                    const distanceMeters = userLatLng.distanceTo(holeLatLng);
+                    const distanceYards = (distanceMeters * 1.09361).toFixed(0);
+                    
+                    const heading = L.CRS.Earth.bearing(holeLatLng, userLatLng);
+                    const frontPoint = L.CRS.Earth.destination(holeLatLng, heading, distanceMeters - 10);
+                    const backPoint = L.CRS.Earth.destination(holeLatLng, heading, distanceMeters + 10);
+                    
+                    frontDistance = userLatLng.distanceTo(frontPoint).toFixed(0);
+                    centerDistance = distanceYards;
+                    backDistance = userLatLng.distanceTo(backPoint).toFixed(0);
+                }
+
+                elements.distanceFront.textContent = frontDistance;
+                elements.distanceCenter.textContent = centerDistance;
+                elements.distanceBack.textContent = backDistance;
+            }
+
+            function handleError(error) {
+                console.error("Geolocation error: " + error.message);
+            }
+
+            elements.modeScorecardBtn.addEventListener('click', () => {
+                state.mode = "scorecard";
+                elements.modeButtons.classList.add('hidden');
+                elements.playerSetupOptions.classList.remove('hidden');
             });
-            document.getElementById(viewId).classList.remove('hidden');
-            document.getElementById(viewId).classList.add('flex');
-        }
 
-        // Map Functions
-        function initMap() {
-            if (state.map) {
-                state.map.remove();
-            }
-            state.map = L.map('map').setView([courseData.holes[0].lat, courseData.holes[0].lng], 17);
-            L.tileLayer.provider('Esri.WorldImagery').addTo(state.map);
-        }
+            elements.modeGpsOnlyBtn.addEventListener('click', () => {
+                state.mode = "gps";
+                startRound();
+            });
+            
+            elements.playerCountBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const playerCount = parseInt(btn.dataset.count);
+                    elements.playerNameInputs.innerHTML = '';
+                    state.players = [];
+                    for (let i = 0; i < playerCount; i++) {
+                        state.players.push({ name: `Player ${i + 1}`, scores: [] });
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.placeholder = `Player ${i + 1} Name`;
+                        input.classList.add('w-full', 'p-3', 'mb-2', 'rounded-xl', 'bg-zinc-100', 'dark:bg-zinc-700', 'text-center', 'font-medium', 'text-zinc-900', 'dark:text-zinc-100', 'placeholder-zinc-400', 'dark:placeholder-zinc-500', 'focus:outline-none', 'focus:ring-2', 'focus:ring-blue-500');
+                        input.dataset.index = i;
+                        input.addEventListener('input', (e) => {
+                            state.players[e.target.dataset.index].name = e.target.value || `Player ${parseInt(e.target.dataset.index) + 1}`;
+                        });
+                        elements.playerNameInputs.appendChild(input);
+                    }
+                    elements.playerNameInputs.classList.remove('hidden');
+                    document.querySelectorAll('.player-count-btn').forEach(b => b.classList.remove('bg-blue-500', 'text-white'));
+                    btn.classList.add('bg-blue-500', 'text-white');
+                });
+            });
 
-        function showMap() {
-            if (!state.map) {
+            elements.startScorecardRoundBtn.addEventListener('click', startRound);
+
+            elements.nextHoleBtn.addEventListener('click', () => changeHole(1));
+            elements.prevHoleBtn.addEventListener('click', () => changeHole(-1));
+            
+            elements.endRoundBtn.addEventListener('click', endRound);
+            elements.scorecardEndRoundBtn.addEventListener('click', endRound);
+            
+            elements.mapBtn.addEventListener('click', showMap);
+            elements.scorecardBtn.addEventListener('click', showScorecard);
+
+            elements.scoreButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const scoreDiff = parseInt(btn.dataset.score);
+                    const par = courseData.holes[state.currentHoleIndex].par;
+                    const score = par + scoreDiff;
+                    const playerIndex = state.currentPlayerIndex;
+                    state.players[playerIndex].scores[state.currentHoleIndex] = score;
+                    generateScorecard();
+                    showScorecard();
+                });
+            });
+
+            elements.scoreNextBtn.addEventListener('click', () => {
+                let nextPlayerIndex = state.currentPlayerIndex + 1;
+                let nextHoleIndex = state.currentHoleIndex;
+                if (nextPlayerIndex >= state.players.length) {
+                    nextPlayerIndex = 0;
+                    nextHoleIndex = state.currentHoleIndex + 1;
+                }
+
+                if (nextHoleIndex >= courseData.holes.length) {
+                    showScorecard();
+                } else {
+                    state.isEditingScore = false;
+                    state.currentPlayerIndex = nextPlayerIndex;
+                    state.currentHoleIndex = nextHoleIndex;
+                    showScoreEntry(courseData.holes[state.currentHoleIndex].hole);
+                }
+            });
+
+            elements.scoreBackBtn.addEventListener('click', () => showScorecard());
+
+            function startRound() {
+                showView('main-view');
+                elements.courseName.textContent = courseData.name;
+                state.currentHoleIndex = 0;
+                updateHoleInfo();
+                if (state.mode === "scorecard") {
+                    state.players.forEach(player => player.scores = new Array(courseData.holes.length).fill(null));
+                    elements.scorecardBtn.classList.remove('hidden');
+                    elements.scorecardEndRoundBtn.classList.remove('hidden');
+                    elements.endRoundBtn.classList.add('hidden');
+                } else {
+                    elements.scorecardBtn.classList.add('hidden');
+                    elements.scorecardEndRoundBtn.classList.add('hidden');
+                    elements.endRoundBtn.classList.remove('hidden');
+                }
                 initMap();
             }
-            showView('main-view');
-            setTimeout(() => {
-                state.map.invalidateSize();
-                updateMapMarkers();
-            }, 0);
-            updateDistances();
-            if (navigator.geolocation) {
-                navigator.geolocation.watchPosition(updateUserPosition, handleError, { enableHighAccuracy: true });
-            }
-        }
 
-        function updateMapMarkers() {
-            if (!state.map) return;
-            state.courseMarkers.forEach(marker => state.map.removeLayer(marker));
-            state.courseMarkers = [];
-
-            const currentHole = courseData.holes[state.currentHoleIndex];
-            const markerOptions = {
-                icon: L.divIcon({
-                    className: 'map-marker-icon',
-                    html: `<div class="bg-blue-600 text-white font-bold p-2 rounded-full shadow-lg text-sm">Hole ${currentHole.hole}</div>`,
-                    iconSize: [40, 40],
-                    iconAnchor: [20, 40]
-                })
-            };
-            const marker = L.marker([currentHole.lat, currentHole.lng], markerOptions).addTo(state.map);
-            state.courseMarkers.push(marker);
-
-            state.map.setView([currentHole.lat, currentHole.lng], 17);
-        }
-
-        function updateUserPosition(position) {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-            const userLatLng = L.latLng(lat, lng);
-            
-            if (state.userMarker) {
-                state.userMarker.setLatLng(userLatLng);
-            } else {
-                state.userMarker = L.marker(userLatLng).addTo(state.map);
-            }
-            
-            updateDistances(userLatLng);
-        }
-
-        function updateDistances(userLatLng) {
-            const currentHole = courseData.holes[state.currentHoleIndex];
-            const holeLatLng = L.latLng(currentHole.lat, currentHole.lng);
-            
-            let frontDistance = '--';
-            let centerDistance = '--';
-            let backDistance = '--';
-
-            if (userLatLng) {
-                const distanceMeters = userLatLng.distanceTo(holeLatLng);
-                const distanceYards = (distanceMeters * 1.09361).toFixed(0);
-                
-                // Assuming front, center, back are on a line towards the user
-                const heading = L.CRS.Earth.bearing(holeLatLng, userLatLng);
-                const frontPoint = L.CRS.Earth.destination(holeLatLng, heading, distanceMeters - 10); // 10m short of center
-                const backPoint = L.CRS.Earth.destination(holeLatLng, heading, distanceMeters + 10); // 10m long of center
-                
-                frontDistance = userLatLng.distanceTo(frontPoint).toFixed(0);
-                centerDistance = distanceYards;
-                backDistance = userLatLng.distanceTo(backPoint).toFixed(0);
-            }
-
-            elements.distanceFront.textContent = frontDistance;
-            elements.distanceCenter.textContent = centerDistance;
-            elements.distanceBack.textContent = backDistance;
-        }
-
-        function handleError(error) {
-            console.error("Geolocation error: " + error.message);
-            // Handle error, e.g., show a message to the user
-        }
-
-        // Event Listeners for UI
-        elements.modeScorecardBtn.addEventListener('click', () => {
-            state.mode = "scorecard";
-            elements.modeButtons.classList.add('hidden');
-            elements.playerSetupOptions.classList.remove('hidden');
-        });
-
-        elements.modeGpsOnlyBtn.addEventListener('click', () => {
-            state.mode = "gps";
-            startRound();
-        });
-        
-        elements.playerCountBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const playerCount = parseInt(btn.dataset.count);
-                elements.playerNameInputs.innerHTML = '';
-                state.players = [];
-                for (let i = 0; i < playerCount; i++) {
-                    state.players.push({ name: `Player ${i + 1}`, scores: [] });
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.placeholder = `Player ${i + 1} Name`;
-                    input.classList.add('w-full', 'p-3', 'mb-2', 'rounded-xl', 'bg-zinc-100', 'dark:bg-zinc-700', 'text-center', 'font-medium', 'text-zinc-900', 'dark:text-zinc-100', 'placeholder-zinc-400', 'dark:placeholder-zinc-500', 'focus:outline-none', 'focus:ring-2', 'focus:ring-blue-500');
-                    input.dataset.index = i;
-                    input.addEventListener('input', (e) => {
-                        state.players[e.target.dataset.index].name = e.target.value || `Player ${parseInt(e.target.dataset.index) + 1}`;
-                    });
-                    elements.playerNameInputs.appendChild(input);
+            function endRound() {
+                if (confirm("Are you sure you want to end the round?")) {
+                    showView('setup-view');
+                    state.mode = null;
+                    state.players = [];
+                    state.currentHoleIndex = 0;
+                    state.isEditingScore = false;
+                    state.currentPlayerIndex = 0;
+                    elements.modeButtons.classList.remove('hidden');
+                    elements.playerSetupOptions.classList.add('hidden');
+                    elements.playerNameInputs.classList.add('hidden');
+                    document.querySelectorAll('.player-count-btn').forEach(b => b.classList.remove('bg-blue-500', 'text-white'));
                 }
-                elements.playerNameInputs.classList.remove('hidden');
-                document.querySelectorAll('.player-count-btn').forEach(b => b.classList.remove('bg-blue-500', 'text-white'));
-                btn.classList.add('bg-blue-500', 'text-white');
-            });
-        });
-
-        elements.startScorecardRoundBtn.addEventListener('click', startRound);
-
-        elements.nextHoleBtn.addEventListener('click', () => changeHole(1));
-        elements.prevHoleBtn.addEventListener('click', () => changeHole(-1));
-        
-        elements.endRoundBtn.addEventListener('click', endRound);
-        elements.scorecardEndRoundBtn.addEventListener('click', endRound);
-        
-        elements.mapBtn.addEventListener('click', showMap);
-        elements.scorecardBtn.addEventListener('click', showScorecard);
-
-        elements.scoreButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const scoreDiff = parseInt(btn.dataset.score);
-                const par = courseData.holes[state.currentHoleIndex].par;
-                const score = par + scoreDiff;
-                const playerIndex = state.isEditingScore ? state.currentPlayerIndex : state.currentPlayerIndex;
-                state.players[playerIndex].scores[state.currentHoleIndex] = score;
-                generateScorecard();
-                showScorecard();
-            });
-        });
-
-        elements.scoreNextBtn.addEventListener('click', () => {
-            let nextPlayerIndex = state.currentPlayerIndex + 1;
-            let nextHoleIndex = state.currentHoleIndex;
-            if (nextPlayerIndex >= state.players.length) {
-                nextPlayerIndex = 0;
-                nextHoleIndex = state.currentHoleIndex + 1;
             }
 
-            if (nextHoleIndex >= courseData.holes.length) {
-                showScorecard();
-            } else {
-                state.isEditingScore = false;
-                state.currentPlayerIndex = nextPlayerIndex;
-                state.currentHoleIndex = nextHoleIndex;
-                showScoreEntry(courseData.holes[state.currentHoleIndex].hole);
+            function changeHole(direction) {
+                let newIndex = state.currentHoleIndex + direction;
+                if (newIndex >= 0 && newIndex < courseData.holes.length) {
+                    state.currentHoleIndex = newIndex;
+                    updateHoleInfo();
+                    updateMapMarkers();
+                }
             }
-        });
 
-        elements.scoreBackBtn.addEventListener('click', () => showScorecard());
-
-        function startRound() {
-            showView('main-view');
-            elements.courseName.textContent = courseData.name;
-            state.currentHoleIndex = 0;
-            updateHoleInfo();
-            if (state.mode === "scorecard") {
-                state.players.forEach(player => player.scores = new Array(courseData.holes.length).fill(null));
-                elements.scorecardBtn.classList.remove('hidden');
-                elements.scorecardEndRoundBtn.classList.remove('hidden');
-                elements.endRoundBtn.classList.add('hidden');
-            } else {
-                elements.scorecardBtn.classList.add('hidden');
-                elements.scorecardEndRoundBtn.classList.add('hidden');
-                elements.endRoundBtn.classList.remove('hidden');
+            function updateHoleInfo() {
+                const currentHole = courseData.holes[state.currentHoleIndex];
+                elements.holeInfo.textContent = `Hole ${currentHole.hole} - Par ${currentHole.par}`;
             }
-            initMap();
-        }
 
-        function endRound() {
-            // Confirm with user before ending
-            if (confirm("Are you sure you want to end the round?")) {
-                showView('setup-view');
-                // Reset state
-                state.mode = null;
-                state.players = [];
-                state.currentHoleIndex = 0;
-                state.scores = [];
-                state.isEditingScore = false;
-                state.currentPlayerIndex = 0;
-                elements.modeButtons.classList.remove('hidden');
-                elements.playerSetupOptions.classList.add('hidden');
-                elements.playerNameInputs.classList.add('hidden');
-                document.querySelectorAll('.player-count-btn').forEach(b => b.classList.remove('bg-blue-500', 'text-white'));
+            function showScorecard() {
+                showView('scorecard-view');
+                if (state.mode === "scorecard") {
+                    generateScorecard();
+                }
             }
-        }
 
-        function changeHole(direction) {
-            let newIndex = state.currentHoleIndex + direction;
-            if (newIndex >= 0 && newIndex < courseData.holes.length) {
-                state.currentHoleIndex = newIndex;
-                updateHoleInfo();
-                updateMapMarkers();
+            function showScoreEntry(holeNumber) {
+                showView('score-entry-view');
+                elements.scoreEntryTitle.textContent = `Hole ${holeNumber}`;
+                elements.scoreEntryMessage.textContent = `Enter score for ${state.players[state.currentPlayerIndex].name}:`;
             }
-        }
 
-        function updateHoleInfo() {
-            const currentHole = courseData.holes[state.currentHoleIndex];
-            elements.holeInfo.textContent = `Hole ${currentHole.hole} - Par ${currentHole.par}`;
-        }
-
-        function showScorecard() {
-            showView('scorecard-view');
-            if (state.mode === "scorecard") {
-                generateScorecard();
-            }
-        }
-
-        function showScoreEntry(holeNumber) {
-            showView('score-entry-view');
-            elements.scoreEntryTitle.textContent = `Hole ${holeNumber}`;
-            elements.scoreEntryMessage.textContent = `Enter score for ${state.players[state.currentPlayerIndex].name}:`;
-        }
-
-        function generateScorecard() {
-            let playerHeaders = ``;
-            state.players.forEach(player => {
-                playerHeaders += `<th class="p-2 border border-zinc-200 dark:border-zinc-600">${player.name.split(' ')[0]}</th>`;
-            });
-            elements.playerHeaders.innerHTML = playerHeaders;
-            elements.playerHeaders.colSpan = state.players.length;
-            
-            let scorecardHtml = '';
-            let totals = new Array(state.players.length).fill(0);
-            let strokes = new Array(state.players.length).fill(0);
-
-            courseData.holes.forEach((hole, holeIndex) => {
-                let rowHtml = `<tr class="border-b border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer">
-                                <td class="p-2 border border-zinc-200 dark:border-zinc-600 text-sm font-semibold">${hole.hole}</td>
-                                <td class="p-2 border border-zinc-200 dark:border-zinc-600 text-sm font-semibold">${hole.par}</td>`;
-                
-                state.players.forEach((player, playerIndex) => {
-                    const score = player.scores[holeIndex];
-                    let scoreHtml = '--';
-                    let scoreClass = '';
-                    if (score !== null) {
-                        scoreHtml = score;
-                        strokes[playerIndex] += score;
-                        const diff = score - hole.par;
-                        totals[playerIndex] += diff;
-                        scoreClass = getScoreClass(score, hole.par);
-                    }
-                    rowHtml += `<td class="p-2 border border-zinc-200 dark:border-zinc-600 font-bold ${scoreClass}" onclick="editScore(${holeIndex}, ${playerIndex})">${scoreHtml}</td>`;
+            function generateScorecard() {
+                let playerHeaders = ``;
+                state.players.forEach(player => {
+                    playerHeaders += `<th class="p-2 border border-zinc-200 dark:border-zinc-600">${player.name.split(' ')[0]}</th>`;
                 });
-                scorecardHtml += rowHtml + '</tr>';
-            });
+                elements.playerHeaders.innerHTML = playerHeaders;
+                elements.playerHeaders.colSpan = state.players.length;
+                
+                let scorecardHtml = '';
+                let totals = new Array(state.players.length).fill(0);
+                let strokes = new Array(state.players.length).fill(0);
 
-            elements.scorecardBody.innerHTML = scorecardHtml;
+                courseData.holes.forEach((hole, holeIndex) => {
+                    let rowHtml = `<tr class="border-b border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer">
+                                    <td class="p-2 border border-zinc-200 dark:border-zinc-600 text-sm font-semibold">${hole.hole}</td>
+                                    <td class="p-2 border border-zinc-200 dark:border-zinc-600 text-sm font-semibold">${hole.par}</td>`;
+                    
+                    state.players.forEach((player, playerIndex) => {
+                        const score = player.scores[holeIndex];
+                        let scoreHtml = '--';
+                        let scoreClass = '';
+                        if (score !== null) {
+                            scoreHtml = score;
+                            strokes[playerIndex] += score;
+                            const diff = score - hole.par;
+                            totals[playerIndex] += diff;
+                            scoreClass = getScoreClass(score, hole.par);
+                        }
+                        rowHtml += `<td class="p-2 border border-zinc-200 dark:border-zinc-600 font-bold ${scoreClass}" onclick="editScore(${holeIndex}, ${playerIndex})">${scoreHtml}</td>`;
+                    });
+                    scorecardHtml += rowHtml + '</tr>';
+                });
 
-            // Generate totals row
-            let scorecardTotals = elements.scorecardTotals;
-            scorecardTotals.innerHTML = `
-                <div class="bg-zinc-100 dark:bg-zinc-700 rounded-bl-2xl p-4 text-center">
-                    <p class="font-bold text-lg text-zinc-800 dark:text-zinc-200">Totals</p>
-                </div>
-                ${state.players.map((player, playerIndex) => {
-                    const totalClass = totals[playerIndex] > 0 ? 'text-red-500 dark:text-red-400' : 'text-green-500 dark:text-green-400';
-                    const sign = totals[playerIndex] > 0 ? '+' : '';
-                    return `
-                    <div class="bg-zinc-100 dark:bg-zinc-700 p-4 text-center ${playerIndex === state.players.length - 1 ? 'rounded-br-2xl' : ''}">
-                        <div class="flex flex-col items-center">
-                            <span class="text-xs text-zinc-500 dark:text-zinc-400 font-semibold">${strokes[playerIndex]}</span>
-                            <span class="text-sm font-semibold ${totalClass}">${sign}${totals[playerIndex]}</span>
-                        </div>
-                    </div>`;
-                }).join('')}
-            `;
-            scorecardTotals.style.gridTemplateColumns = `repeat(${state.players.length + 1}, minmax(0, 1fr))`;
-        }
+                elements.scorecardBody.innerHTML = scorecardHtml;
 
-        function editScore(holeIndex, playerIndex) {
-            state.isEditingScore = true;
-            state.currentHoleIndex = holeIndex;
-            state.currentPlayerIndex = playerIndex;
-            showScoreEntry(courseData.holes[state.currentHoleIndex].hole);
-            document.getElementById('score-entry-message').textContent = `Editing score for ${state.players[playerIndex].name} on Hole ${courseData.holes[holeIndex].hole}.`;
-        }
+                let scorecardTotalsHtml = `
+                    <div class="bg-zinc-100 dark:bg-zinc-700 rounded-bl-2xl p-4 text-center">
+                        <p class="font-bold text-lg text-zinc-800 dark:text-zinc-200">Totals</p>
+                    </div>
+                    ${state.players.map((player, playerIndex) => {
+                        const totalClass = totals[playerIndex] > 0 ? 'text-red-500 dark:text-red-400' : 'text-green-500 dark:text-green-400';
+                        const sign = totals[playerIndex] > 0 ? '+' : '';
+                        return `
+                        <div class="bg-zinc-100 dark:bg-zinc-700 p-4 text-center ${playerIndex === state.players.length - 1 ? 'rounded-br-2xl' : ''}">
+                            <div class="flex flex-col items-center">
+                                <span class="text-xs text-zinc-500 dark:text-zinc-400 font-semibold">${strokes[playerIndex]}</span>
+                                <span class="text-sm font-semibold ${totalClass}">${sign}${totals[playerIndex]}</span>
+                            </div>
+                        </div>`;
+                    }).join('')}
+                `;
 
-        function getScoreClass(score, par) {
-            const diff = score - par;
-            if (diff <= -2) return 'text-violet-500 font-extrabold'; // Eagle or better
-            if (diff === -1) return 'text-green-500 font-extrabold';  // Birdie
-            if (diff === 0) return 'text-blue-500 font-extrabold';    // Par
-            if (diff === 1) return 'text-orange-500 font-extrabold';  // Bogey
-            if (diff >= 2) return 'text-red-500 font-extrabold';      // Double Bogey or worse
-            return '';
-        }
+                elements.scorecardTotals.innerHTML = scorecardTotalsHtml;
+                elements.scorecardTotals.style.gridTemplateColumns = `repeat(${state.players.length + 1}, minmax(0, 1fr))`;
+            }
+
+            function editScore(holeIndex, playerIndex) {
+                state.isEditingScore = true;
+                state.currentHoleIndex = holeIndex;
+                state.currentPlayerIndex = playerIndex;
+                showScoreEntry(courseData.holes[state.currentHoleIndex].hole);
+                elements.scoreEntryMessage.textContent = `Editing score for ${state.players[playerIndex].name} on Hole ${courseData.holes[holeIndex].hole}.`;
+            }
+
+            function getScoreClass(score, par) {
+                const diff = score - par;
+                if (diff <= -2) return 'text-violet-500 font-extrabold';
+                if (diff === -1) return 'text-green-500 font-extrabold';
+                if (diff === 0) return 'text-blue-500 font-extrabold';
+                if (diff === 1) return 'text-orange-500 font-extrabold';
+                if (diff >= 2) return 'text-red-500 font-extrabold';
+                return '';
+            }
+
+            window.editScore = editScore;
+        })();
     </script>
 </body>
 </html>
