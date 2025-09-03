@@ -192,29 +192,19 @@
         (function() {
             const apiKey = 'YOUR_GOOGLE_MAPS_API_KEY';
             const courseData = {
-                "name": "Local Golf Course",
-                "holes": [
-                    { "hole": 1, "par": 4, "lat": 39.754719, "lng": -104.996147 },
-                    { "hole": 2, "par": 5, "lat": 39.753890, "lng": -105.000305 },
-                    { "hole": 3, "par": 3, "lat": 39.752511, "lng": -104.999557 },
-                    { "hole": 4, "par": 4, "lat": 39.751688, "lng": -104.997232 },
-                    { "hole": 5, "par": 5, "lat": 39.750849, "lng": -104.994463 },
-                    { "hole": 6, "par": 3, "lat": 39.752317, "lng": -104.993078 },
-                    { "hole": 7, "par": 4, "lat": 39.754026, "lng": -104.992641 },
-                    { "hole": 8, "par": 4, "lat": 39.754881, "lng": -104.994709 },
-                    { "hole": 9, "par": 5, "lat": 39.755677, "lng": -104.996928 },
-                    { "hole": 10, "par": 4, "lat": 39.756214, "lng": -104.999580 },
-                    { "hole": 11, "par": 4, "lat": 39.757833, "lng": -105.000858 },
-                    { "hole": 12, "par": 3, "lat": 39.759231, "lng": -105.001607 },
-                    { "hole": 13, "par": 5, "lat": 39.760114, "lng": -105.000109 },
-                    { "hole": 14, "par": 4, "lat": 39.758963, "lng": -104.998462 },
-                    { "hole": 15, "par": 4, "lat": 39.757864, "lng": -104.997184 },
-                    { "hole": 16, "par": 3, "lat": 39.756910, "lng": -104.995955 },
-                    { "hole": 17, "par": 4, "lat": 39.755866, "lng": -104.994348 },
-                    { "hole": 18, "par": 5, "lat": 39.754719, "lng": -104.996147 }
+                name: "HadleyCreek",
+                holes: [
+                    { hole: 1, par: 3, tee: [44.075384, -92.431759], front: [44.074584, -92.432029], center: [44.074452, -92.432007], back: [44.074334, -92.431968], hazards: [] },
+                    { hole: 2, par: 4, tee: [44.073303, -92.431259], front: [44.074169, -92.434047], center: [44.074227, -92.434211], back: [44.074301, -92.434349], hazards: [{ name: "Right Bunker", location: [44.073809, -92.432729] }, { name: "Left Bunker", location: [44.073771, -92.433538] }] },
+                    { hole: 3, par: 3, tee: [44.073554, -92.434544], front: [44.072758, -92.433836], center: [44.072678, -92.433714], back: [44.072582, -92.433597], hazards: [{ name: "Left Bunker", location: [44.07296298584522, -92.43384416400436] }] },
+                    { hole: 4, par: 3, tee: [44.072748, -92.434836], front: [44.073577, -92.435656], center: [44.073693, -92.435775], back: [44.073808, -92.435914], hazards: [] },
+                    { hole: 5, par: 4, tee: [44.074034, -92.439247], front: [44.074087, -92.442439], center: [44.074133, -92.442610], back: [44.074181, -92.442764], hazards: [] },
+                    { hole: 6, par: 3, tee: [44.073704, -92.443746], front: [44.073768, -92.444650], center: [44.073819, -92.444810], back: [44.073841, -92.444974], hazards: [{ name: "Water on Right", location: [44.07385845583365, -92.44452525640412] }] },
+                    { hole: 7, par: 4, tee: [44.075151, -92.445116], front: [44.074793, -92.441756], center: [44.074769, -92.441583], back: [44.074780, -92.441421], hazards: [{ name: "Left Bunker", location: [44.074621, -92.442656] }, { name: "Right Water", location: [44.074800, -92.441900] }] },
+                    { hole: 8, par: 3, tee: [44.07491196732004, -92.43994731525015], front: [44.074910, -92.438149], center: [44.074950, -92.437983], back: [44.074989, -92.437890], hazards: [] },
+                    { hole: 9, par: 4, tee: [44.074869, -92.436735], front: [44.075048, -92.433139], center: [44.075108, -92.433005], back: [44.075154, -92.432855], hazards: [{ name: "Left Bunker", location: [44.07517764620998, -92.43392076595802] }] }
                 ]
             };
-
             const state = {
                 mode: null,
                 players: [],
@@ -305,8 +295,10 @@
             elements.wakeLockBtn.addEventListener('click', toggleWakeLock);
 
             function showView(viewId) {
-                ['setup-view', 'main-view', 'scorecard-view', 'score-entry-view'].forEach(id => {
-                    document.getElementById(id).classList.add('hidden');
+                const views = ['setup-view', 'main-view', 'scorecard-view', 'score-entry-view'];
+                views.forEach(id => {
+                    document.getElementById(id).classList.add('hidden', 'flex-col');
+                    document.getElementById(id).classList.remove('flex');
                 });
                 document.getElementById(viewId).classList.remove('hidden');
                 document.getElementById(viewId).classList.add('flex');
@@ -316,7 +308,7 @@
                 if (state.map) {
                     state.map.remove();
                 }
-                state.map = L.map('map').setView([courseData.holes[0].lat, courseData.holes[0].lng], 17);
+                state.map = L.map('map').setView(courseData.holes[0].center, 17);
                 L.tileLayer.provider('Esri.WorldImagery').addTo(state.map);
             }
 
@@ -349,10 +341,10 @@
                         iconAnchor: [20, 40]
                     })
                 };
-                const marker = L.marker([currentHole.lat, currentHole.lng], markerOptions).addTo(state.map);
+                const marker = L.marker(currentHole.center, markerOptions).addTo(state.map);
                 state.courseMarkers.push(marker);
 
-                state.map.setView([currentHole.lat, currentHole.lng], 17);
+                state.map.setView(currentHole.center, 17);
             }
 
             function updateUserPosition(position) {
@@ -371,7 +363,7 @@
 
             function updateDistances(userLatLng) {
                 const currentHole = courseData.holes[state.currentHoleIndex];
-                const holeLatLng = L.latLng(currentHole.lat, currentHole.lng);
+                const holeLatLng = L.latLng(currentHole.center);
                 
                 let frontDistance = '--';
                 let centerDistance = '--';
@@ -385,9 +377,9 @@
                     const frontPoint = L.CRS.Earth.destination(holeLatLng, heading, distanceMeters - 10);
                     const backPoint = L.CRS.Earth.destination(holeLatLng, heading, distanceMeters + 10);
                     
-                    frontDistance = userLatLng.distanceTo(frontPoint).toFixed(0);
-                    centerDistance = distanceYards;
-                    backDistance = userLatLng.distanceTo(backPoint).toFixed(0);
+                    frontDistance = userLatLng.distanceTo(L.latLng(currentHole.front)).toFixed(0);
+                    centerDistance = userLatLng.distanceTo(L.latLng(currentHole.center)).toFixed(0);
+                    backDistance = userLatLng.distanceTo(L.latLng(currentHole.back)).toFixed(0);
                 }
 
                 elements.distanceFront.textContent = frontDistance;
