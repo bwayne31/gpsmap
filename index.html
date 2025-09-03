@@ -229,6 +229,7 @@
             let map = null;
             let userMarker = null;
             let greenMarker = null;
+            let teeMarker = null;
             let hazardMarkers = [];
 
             // STATE VARIABLES
@@ -520,7 +521,7 @@
                                         displayDistances(position);
                                         messageArea.textContent = 'Distances updated.';
                                     }
-                                } else if (currentHleIndex < courseData.holes.length - 1) {
+                                } else if (currentHoleIndex < courseData.holes.length - 1) {
                                     const nextHole = courseData.holes[currentHoleIndex + 1];
                                     const distToNextTee = haversine(userLat, userLon, nextHole.tee[0], nextHole.tee[1]);
                                     const allScoresEntered = players.every(p => p.scores[currentHoleIndex] !== null);
@@ -591,17 +592,19 @@
             }
 
             function updateMapMarkers() {
-                // Remove existing markers
+                // Remove all existing markers
                 if (userMarker) map.removeLayer(userMarker);
                 if (greenMarker) map.removeLayer(greenMarker);
+                if (teeMarker) map.removeLayer(teeMarker);
                 hazardMarkers.forEach(m => map.removeLayer(m));
                 hazardMarkers = [];
 
-                // Add markers for current hole
+                // Add markers for current hole's tee and green
                 const currentHole = courseData.holes[currentHoleIndex];
                 greenMarker = L.marker(currentHole.center).addTo(map).bindPopup("Green Center").openPopup();
+                teeMarker = L.marker(currentHole.tee).addTo(map).bindPopup("Tee Box");
                 
-                // Add hazards
+                // Add hazards for the current hole
                 if (currentHole.hazards) {
                     currentHole.hazards.forEach(hazard => {
                         let marker = L.marker(hazard.location).addTo(map).bindPopup(hazard.name);
@@ -612,7 +615,11 @@
                 // Add user marker and center map
                 navigator.geolocation.getCurrentPosition(position => {
                     const userLatLon = [position.coords.latitude, position.coords.longitude];
-                    userMarker = L.marker(userLatLon).addTo(map).bindPopup("Your Location").openPopup();
+                    if (userMarker) {
+                        userMarker.setLatLng(userLatLon);
+                    } else {
+                        userMarker = L.marker(userLatLon).addTo(map).bindPopup("Your Location").openPopup();
+                    }
                     map.setView(userLatLon, 17);
                 });
             }
