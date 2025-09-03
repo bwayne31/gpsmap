@@ -5,7 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Golf GPS</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha2d-..."/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet-providers@2.0.2/leaflet-providers.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -24,9 +30,12 @@
         #scorecard-btn .scorecard-icon path {
             fill: currentColor;
         }
-        #map-container {
+        #map {
             height: 100%;
             width: 100%;
+            border-radius: 1.5rem;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.05);
         }
     </style>
 </head>
@@ -80,15 +89,6 @@
                     <p id="hole-info" class="text-md text-zinc-500 dark:text-zinc-400 font-medium transition-colors"></p>
                 </div>
                 
-                <button id="map-btn" class="flex flex-col items-center p-2 rounded-full text-zinc-800 dark:text-zinc-200 bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors">
-                    <svg class="w-6 h-6 icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
-                        <line x1="8" y1="2" x2="8" y2="18"></line>
-                        <line x1="16" y1="6" x2="16" y2="22"></line>
-                    </svg>
-                    <span class="text-xs mt-1 font-semibold">Map</span>
-                </button>
-
                 <button id="wake-lock-btn" class="flex flex-col items-center p-2 rounded-full text-zinc-800 dark:text-zinc-200 bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors">
                     <svg id="wake-lock-icon" class="w-6 h-6 icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
@@ -112,719 +112,508 @@
                     </div>
                     <div class="bg-teal-100 dark:bg-teal-900 rounded-2xl p-4 shadow-inner transition-colors">
                         <p class="text-sm font-semibold text-zinc-600 dark:text-zinc-300">Back</p>
-                        <p id="distance-back" class="text-4xl font-black text-blue-600 dark:text-blue-400 mt-2">--</p>
+                        <p id="distance-back" class="text-4xl font-black text-red-600 dark:text-red-400 mt-2">--</p>
                         <p class="text-xs text-zinc-400 dark:text-zinc-500">yards</p>
                     </div>
                 </div>
+                
+                <div class="flex-grow mb-6">
+                    <div id="map" class="w-full h-full rounded-2xl shadow-inner"></div>
+                </div>
+
+                <div class="flex justify-between space-x-4">
+                    <button id="prev-hole-btn" class="flex-1 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-bold py-3 px-4 rounded-full shadow-lg hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors">Previous Hole</button>
+                    <button id="next-hole-btn" class="flex-1 bg-blue-600 text-white font-bold py-3 px-4 rounded-full shadow-lg hover:bg-blue-700 transition-colors">Next Hole</button>
+                </div>
             </div>
             
-            <div class="flex justify-between space-x-2">
-                <div id="hazards-left" class="flex flex-col space-y-2 w-1/2 items-start"></div>
-                <div id="hazards-right" class="flex flex-col space-y-2 w-1/2 items-end"></div>
-            </div>
-
-            <p id="message-area" class="text-center text-sm font-medium h-6 text-zinc-600 dark:text-zinc-400"></p>
-
-            <div id="shot-distance-display" class="hidden text-center mt-4">
-                <p class="text-md font-semibold text-zinc-600 dark:text-zinc-300">Last Shot Distance</p>
-                <p id="shot-distance" class="text-3xl font-black text-teal-600 dark:text-teal-400 mt-1">--</p>
-                <p class="text-xs text-zinc-400 dark:text-zinc-500">yards</p>
-            </div>
-
-            <div class="flex items-center justify-between gap-4 mt-6">
-                <button id="prev-hole-btn" class="flex-1 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-bold py-3 px-4 rounded-full shadow-md hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors">
-                    Previous
-                </button>
-                <button id="next-hole-btn" class="flex-1 bg-blue-600 text-white font-bold py-3 px-4 rounded-full shadow-lg hover:bg-blue-700 transition-colors transform hover:scale-105">
-                    Next
-                </button>
-            </div>
-            <button id="shot-tracker-btn" class="w-full mt-4 font-bold py-3 px-4 rounded-full shadow-md transition-colors bg-blue-600 text-white">
-                Start Shot
-            </button>
+            <button id="end-round-btn" class="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-full shadow-lg hover:bg-red-700 transition-colors mt-6">End Round</button>
         </div>
-
-        <div id="map-view" class="hidden flex-col justify-between h-full">
-            <h1 class="text-3xl font-extrabold text-zinc-900 dark:text-zinc-100 text-center mb-6">Course Map</h1>
-            <div id="map-container" class="flex-grow rounded-2xl overflow-hidden shadow-lg">
-                </div>
-            <button id="back-to-gps-btn" class="mt-6 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-full shadow-lg hover:bg-blue-700 transition-colors">
-                Back to GPS
-            </button>
-        </div>
-
-        <div id="score-entry-view" class="hidden flex flex-col justify-between h-full">
-            <div>
-                <h1 id="score-entry-title" class="text-3xl font-extrabold text-zinc-900 dark:text-zinc-100 text-center mb-4">Score Hole 1</h1>
-                
-                <div id="player-tabs" class="flex justify-center mb-6 space-x-2">
-                </div>
-
-                <div class="grid grid-cols-3 gap-4">
-                    <button class="score-btn bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold py-6 rounded-full text-4xl shadow-md hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors" data-score="1">1</button>
-                    <button class="score-btn bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold py-6 rounded-full text-4xl shadow-md hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors" data-score="2">2</button>
-                    <button class="score-btn bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold py-6 rounded-full text-4xl shadow-md hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors" data-score="3">3</button>
-                    <button class="score-btn bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold py-6 rounded-full text-4xl shadow-md hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors" data-score="4">4</button>
-                    <button class="score-btn bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold py-6 rounded-full text-4xl shadow-md hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors" data-score="5">5</button>
-                    <button class="score-btn bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold py-6 rounded-full text-4xl shadow-md hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors" data-score="6">6</button>
-                    <button class="score-btn bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold py-6 rounded-full text-4xl shadow-md hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors" data-score="7">7</button>
-                    <button class="score-btn bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold py-6 rounded-full text-4xl shadow-md hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors" data-score="8">8</button>
-                    <button class="score-btn bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold py-6 rounded-full text-4xl shadow-md hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors" data-score="9">9</button>
-                </div>
-            </div>
-            <p id="score-entry-message" class="text-center text-sm font-medium h-6 mt-6 text-zinc-600 dark:text-zinc-400"></p>
-            <button id="cancel-score-btn" class="mt-4 w-full bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-bold py-3 px-4 rounded-full shadow-md hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors">
-                Cancel
-            </button>
-        </div>
-
-        <div id="scorecard-view" class="hidden flex flex-col justify-between h-full">
-            <div>
-                <h1 class="text-3xl font-extrabold text-zinc-900 dark:text-zinc-100 text-center mb-6">Scorecard</h1>
-                <div class="bg-zinc-100 dark:bg-zinc-700 rounded-2xl p-4 shadow-inner transition-colors">
-                    <div id="scorecard-header" class="grid gap-2 font-bold text-sm text-zinc-600 dark:text-zinc-300 mb-2">
-                        </div>
-                    <hr class="border-zinc-300 dark:border-zinc-600 mb-2">
-                    <div id="scores-list" class="space-y-2">
-                        </div>
-                </div>
-            </div>
-            <div class="mt-6">
-                <div id="scorecard-totals" class="flex justify-between items-center bg-blue-600 rounded-2xl p-4 shadow-lg text-white">
-                    </div>
-                <button id="back-to-course-btn" class="mt-4 w-full bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-bold py-3 px-4 rounded-full shadow-md hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors">
-                    Back to Course
+        
+        <div id="scorecard-view" class="hidden flex-col justify-between h-full">
+            <div class="flex justify-between items-center mb-6">
+                <button id="map-btn" class="flex flex-col items-center p-2 rounded-full text-zinc-800 dark:text-zinc-200 bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors">
+                    <svg class="w-6 h-6 icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+                        <line x1="8" y1="2" x2="8" y2="18"></line>
+                        <line x1="16" y1="6" x2="16" y2="22"></line>
+                    </svg>
+                    <span class="text-xs mt-1 font-semibold">Map</span>
                 </button>
-                <button id="start-new-round-btn" class="mt-4 w-full bg-red-600 text-white font-bold py-3 px-4 rounded-full shadow-lg hover:bg-red-700 transition-colors transform hover:scale-105">
-                    Start New Round
+                <h1 class="text-2xl font-extrabold text-center text-zinc-900 dark:text-zinc-100">Scorecard</h1>
+                <button id="scorecard-end-round-btn" class="flex flex-col items-center p-2 rounded-full text-zinc-800 dark:text-zinc-200 bg-red-200 dark:bg-red-700 hover:bg-red-300 dark:hover:bg-red-600 transition-colors">
+                    <svg class="w-6 h-6 icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                    <span class="text-xs mt-1 font-semibold">End</span>
                 </button>
             </div>
+            
+            <div class="flex-grow overflow-y-auto mb-6">
+                <table class="w-full text-center border-collapse table-fixed">
+                    <thead>
+                        <tr class="bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-bold sticky top-0 shadow">
+                            <th class="p-2 border border-zinc-200 dark:border-zinc-600 w-[15%]">Hole</th>
+                            <th class="p-2 border border-zinc-200 dark:border-zinc-600 w-[25%]">Par</th>
+                            <th class="p-2 border border-zinc-200 dark:border-zinc-600 w-[60%]" colspan="4" id="player-headers"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="scorecard-body" class="text-zinc-900 dark:text-zinc-100"></tbody>
+                </table>
+            </div>
+
+            <div id="scorecard-totals" class="grid w-full text-center font-bold mb-4"></div>
         </div>
+
+        <div id="score-entry-view" class="hidden flex-col justify-center h-full text-center">
+            <h2 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-4" id="score-entry-title">Hole --</h2>
+            <p id="score-entry-message" class="text-md text-zinc-600 dark:text-zinc-300 mb-6"></p>
+            
+            <div id="score-buttons" class="grid grid-cols-3 gap-4 mb-8">
+                <button class="score-btn p-4 rounded-2xl bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold text-2xl hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors" data-score="-2">Eagle</button>
+                <button class="score-btn p-4 rounded-2xl bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold text-2xl hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors" data-score="-1">Birdie</button>
+                <button class="score-btn p-4 rounded-2xl bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold text-2xl hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors" data-score="0">Par</button>
+                <button class="score-btn p-4 rounded-2xl bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold text-2xl hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors" data-score="1">Bogey</button>
+                <button class="score-btn p-4 rounded-2xl bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold text-2xl hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors" data-score="2">Double</button>
+                <button class="score-btn p-4 rounded-2xl bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold text-2xl hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors" data-score="3">Triple</button>
+                <button class="score-btn p-4 rounded-2xl bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold text-2xl hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors" data-score="4">4+</button>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <button id="score-back-btn" class="bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-bold py-3 px-4 rounded-full shadow-lg hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors">Back</button>
+                <button id="score-next-btn" class="bg-blue-600 text-white font-bold py-3 px-4 rounded-full shadow-lg hover:bg-blue-700 transition-colors">Next</button>
+            </div>
+        </div>
+
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha2d-S9i7w5j8t3u2a9x4v1k8m7h6g5f4d3c2b1a0x9y8z7w6v5u4t3s2r1q0p9o8n7m6l5k4j3i2h1g0f" crossorigin=""></script>
     <script>
-        (function() {
-            const courseData = {
-                name: "HadleyCreek",
-                holes: [
-                    { hole: 1, par: 3, tee: [44.075384, -92.431759], front: [44.074584, -92.432029], center: [44.074452, -92.432007], back: [44.074334, -92.431968], hazards: [] },
-                    { hole: 2, par: 4, tee: [44.073303, -92.431259], front: [44.074169, -92.434047], center: [44.074227, -92.434211], back: [44.074301, -92.434349], hazards: [{ name: "Right Bunker", location: [44.073809, -92.432729] }, { name: "Left Bunker", location: [44.073771, -92.433538] }] },
-                    { hole: 3, par: 3, tee: [44.073554, -92.434544], front: [44.072758, -92.433836], center: [44.072678, -92.433714], back: [44.072582, -92.433597], hazards: [{ name: "Left Bunker", location: [44.07296298584522, -92.43384416400436] }] },
-                    { hole: 4, par: 3, tee: [44.072748, -92.434836], front: [44.073577, -92.435656], center: [44.073693, -92.435775], back: [44.073808, -92.435914], hazards: [] },
-                    { hole: 5, par: 4, tee: [44.074034, -92.439247], front: [44.074087, -92.442439], center: [44.074133, -92.442610], back: [44.074181, -92.442764], hazards: [] },
-                    { hole: 6, par: 3, tee: [44.073704, -92.443746], front: [44.073768, -92.444650], center: [44.073819, -92.444810], back: [44.073841, -92.444974], hazards: [{ name: "Water on Right", location: [44.07385845583365, -92.44452525640412] }] },
-                    { hole: 7, par: 4, tee: [44.075151, -92.445116], front: [44.074793, -92.441756], center: [44.074769, -92.441583], back: [44.074780, -92.441421], hazards: [{ name: "Left Bunker", location: [44.074621, -92.442656] }, { name: "Right Water", location: [44.074800, -92.441900] }] },
-                    { hole: 8, par: 3, tee: [44.07491196732004, -92.43994731525015], front: [44.074910, -92.438149], center: [44.074950, -92.437983], back: [44.074989, -92.437890], hazards: [] },
-                    { hole: 9, par: 4, tee: [44.074869, -92.436735], front: [44.075048, -92.433139], center: [44.075108, -92.433005], back: [44.075154, -92.432855], hazards: [{ name: "Left Bunker", location: [44.07517764620998, -92.43392076595802] }] }
-                ]
+        const apiKey = 'YOUR_GOOGLE_MAPS_API_KEY';
+        const courseData = {
+            "name": "Local Golf Course",
+            "holes": [
+                { "hole": 1, "par": 4, "lat": 39.754719, "lng": -104.996147 },
+                { "hole": 2, "par": 5, "lat": 39.753890, "lng": -105.000305 },
+                { "hole": 3, "par": 3, "lat": 39.752511, "lng": -104.999557 },
+                { "hole": 4, "par": 4, "lat": 39.751688, "lng": -104.997232 },
+                { "hole": 5, "par": 5, "lat": 39.750849, "lng": -104.994463 },
+                { "hole": 6, "par": 3, "lat": 39.752317, "lng": -104.993078 },
+                { "hole": 7, "par": 4, "lat": 39.754026, "lng": -104.992641 },
+                { "hole": 8, "par": 4, "lat": 39.754881, "lng": -104.994709 },
+                { "hole": 9, "par": 5, "lat": 39.755677, "lng": -104.996928 },
+                { "hole": 10, "par": 4, "lat": 39.756214, "lng": -104.999580 },
+                { "hole": 11, "par": 4, "lat": 39.757833, "lng": -105.000858 },
+                { "hole": 12, "par": 3, "lat": 39.759231, "lng": -105.001607 },
+                { "hole": 13, "par": 5, "lat": 39.760114, "lng": -105.000109 },
+                { "hole": 14, "par": 4, "lat": 39.758963, "lng": -104.998462 },
+                { "hole": 15, "par": 4, "lat": 39.757864, "lng": -104.997184 },
+                { "hole": 16, "par": 3, "lat": 39.756910, "lng": -104.995955 },
+                { "hole": 17, "par": 4, "lat": 39.755866, "lng": -104.994348 },
+                { "hole": 18, "par": 5, "lat": 39.754719, "lng": -104.996147 }
+            ]
+        };
+
+        const state = {
+            mode: null, // "scorecard" or "gps"
+            players: [],
+            currentHoleIndex: 0,
+            isEditingScore: false,
+            currentPlayerIndex: 0,
+            scores: [],
+            wakeLock: null,
+            map: null,
+            userMarker: null,
+            courseMarkers: [],
+        };
+
+        const elements = {
+            setupView: document.getElementById('setup-view'),
+            mainView: document.getElementById('main-view'),
+            scorecardView: document.getElementById('scorecard-view'),
+            scoreEntryView: document.getElementById('score-entry-view'),
+            modeScorecardBtn: document.getElementById('mode-scorecard-btn'),
+            modeGpsOnlyBtn: document.getElementById('mode-gps-only-btn'),
+            playerSetupOptions: document.getElementById('player-setup-options'),
+            playerCountBtns: document.querySelectorAll('.player-count-btn'),
+            playerNameInputs: document.getElementById('player-name-inputs'),
+            startScorecardRoundBtn: document.getElementById('start-scorecard-round-btn'),
+            courseName: document.getElementById('course-name'),
+            holeInfo: document.getElementById('hole-info'),
+            distanceFront: document.getElementById('distance-front'),
+            distanceCenter: document.getElementById('distance-center'),
+            distanceBack: document.getElementById('distance-back'),
+            mapBtn: document.getElementById('map-btn'),
+            scorecardBtn: document.getElementById('scorecard-btn'),
+            prevHoleBtn: document.getElementById('prev-hole-btn'),
+            nextHoleBtn: document.getElementById('next-hole-btn'),
+            endRoundBtn: document.getElementById('end-round-btn'),
+            scorecardEndRoundBtn: document.getElementById('scorecard-end-round-btn'),
+            scorecardBody: document.getElementById('scorecard-body'),
+            scorecardTotals: document.getElementById('scorecard-totals'),
+            playerHeaders: document.getElementById('player-headers'),
+            scoreEntryTitle: document.getElementById('score-entry-title'),
+            scoreEntryMessage: document.getElementById('score-entry-message'),
+            scoreButtons: document.querySelectorAll('.score-btn'),
+            scoreBackBtn: document.getElementById('score-back-btn'),
+            scoreNextBtn: document.getElementById('score-next-btn'),
+            wakeLockBtn: document.getElementById('wake-lock-btn'),
+            wakeLockIcon: document.getElementById('wake-lock-icon'),
+            wakeLockText: document.getElementById('wake-lock-text'),
+        };
+
+        // Screen Wake Lock
+        const toggleWakeLock = async () => {
+            if ('wakeLock' in navigator) {
+                if (state.wakeLock !== null) {
+                    try {
+                        await state.wakeLock.release();
+                        state.wakeLock = null;
+                        elements.wakeLockIcon.classList.remove('text-blue-500');
+                        elements.wakeLockIcon.classList.add('text-zinc-800', 'dark:text-zinc-200');
+                        elements.wakeLockText.textContent = 'Keep Screen On';
+                        console.log('Wake lock released.');
+                    } catch (err) {
+                        console.error(`${err.name}, ${err.message}`);
+                    }
+                } else {
+                    try {
+                        state.wakeLock = await navigator.wakeLock.request('screen');
+                        state.wakeLock.addEventListener('release', () => {
+                            console.log('Wake lock was released by the OS.');
+                            state.wakeLock = null;
+                            elements.wakeLockIcon.classList.remove('text-blue-500');
+                            elements.wakeLockIcon.classList.add('text-zinc-800', 'dark:text-zinc-200');
+                            elements.wakeLockText.textContent = 'Keep Screen On';
+                        });
+                        elements.wakeLockIcon.classList.remove('text-zinc-800', 'dark:text-zinc-200');
+                        elements.wakeLockIcon.classList.add('text-blue-500');
+                        elements.wakeLockText.textContent = 'Screen On';
+                        console.log('Wake lock activated.');
+                    } catch (err) {
+                        console.error(`${err.name}, ${err.message}`);
+                    }
+                }
+            } else {
+                console.log('Wake Lock API not supported.');
+            }
+        };
+
+        elements.wakeLockBtn.addEventListener('click', toggleWakeLock);
+
+        // UI View Transitions
+        function showView(viewId) {
+            ['setup-view', 'main-view', 'scorecard-view', 'score-entry-view'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(viewId).classList.remove('hidden');
+            document.getElementById(viewId).classList.add('flex');
+        }
+
+        // Map Functions
+        function initMap() {
+            if (state.map) {
+                state.map.remove();
+            }
+            state.map = L.map('map').setView([courseData.holes[0].lat, courseData.holes[0].lng], 17);
+            L.tileLayer.provider('Esri.WorldImagery').addTo(state.map);
+        }
+
+        function showMap() {
+            if (!state.map) {
+                initMap();
+            }
+            showView('main-view');
+            setTimeout(() => {
+                state.map.invalidateSize();
+                updateMapMarkers();
+            }, 0);
+            updateDistances();
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(updateUserPosition, handleError, { enableHighAccuracy: true });
+            }
+        }
+
+        function updateMapMarkers() {
+            if (!state.map) return;
+            state.courseMarkers.forEach(marker => state.map.removeLayer(marker));
+            state.courseMarkers = [];
+
+            const currentHole = courseData.holes[state.currentHoleIndex];
+            const markerOptions = {
+                icon: L.divIcon({
+                    className: 'map-marker-icon',
+                    html: `<div class="bg-blue-600 text-white font-bold p-2 rounded-full shadow-lg text-sm">Hole ${currentHole.hole}</div>`,
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 40]
+                })
             };
-            
-            const clubhouseCoordinates = [44.07573313979243, -92.43190539177425];
-            const proximityThreshold = 20;
-            const finalProximityThreshold = 50;
-            let watcherId;
-            let shotStartLocation = null;
-            let wakeLock = null;
-            let map = null;
-            let userMarker = null;
-            let greenMarker = null;
-            let teeMarker = null;
-            let hazardMarkers = [];
+            const marker = L.marker([currentHole.lat, currentHole.lng], markerOptions).addTo(state.map);
+            state.courseMarkers.push(marker);
 
-            // STATE VARIABLES
-            let currentHoleIndex = 0;
-            let players = [];
-            let isScorecardEnabled = false;
-            let currentPlayerIndex = 0;
-            let isEditingScore = false;
+            state.map.setView([currentHole.lat, currentHole.lng], 17);
+        }
 
-            // UI Elements
-            const setupView = document.getElementById('setup-view');
-            const mainView = document.getElementById('main-view');
-            const scoreEntryView = document.getElementById('score-entry-view');
-            const scorecardView = document.getElementById('scorecard-view');
-            const mapView = document.getElementById('map-view');
-
-            // NEW UI ELEMENTS
-            const mapBtn = document.getElementById('map-btn');
-            const backToGpsBtn = document.getElementById('back-to-gps-btn');
-            const mapContainer = document.getElementById('map-container');
-            const modeScorecardBtn = document.getElementById('mode-scorecard-btn');
-            const modeGpsOnlyBtn = document.getElementById('mode-gps-only-btn');
-            const modeSelectText = document.getElementById('mode-select-text');
-            const modeButtons = document.getElementById('mode-buttons');
-            const playerSetupOptions = document.getElementById('player-setup-options');
-            const playerCountButtons = document.querySelectorAll('.player-count-btn');
-            const playerNameInputsContainer = document.getElementById('player-name-inputs');
-            const startScorecardRoundBtn = document.getElementById('start-scorecard-round-btn');
+        function updateUserPosition(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const userLatLng = L.latLng(lat, lng);
             
-            const scorecardBtn = document.getElementById('scorecard-btn');
-            const playerTabs = document.getElementById('player-tabs');
-            
-            // Initial player count selection
-            let selectedPlayerCount = 1;
-            
-            function createPlayerNameInputs(count) {
-                playerNameInputsContainer.innerHTML = '';
-                if (count > 0) {
-                    playerNameInputsContainer.classList.remove('hidden');
-                    for (let i = 0; i < count; i++) {
-                        const input = document.createElement('input');
-                        input.type = 'text';
-                        input.placeholder = `Player ${i + 1}`;
-                        input.value = `Player ${i + 1}`;
-                        input.className = 'w-full bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-medium py-3 px-4 rounded-xl mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500';
-                        input.id = `player-name-${i}`;
-                        playerNameInputsContainer.appendChild(input);
-                    }
-                } else {
-                    playerNameInputsContainer.classList.add('hidden');
-                }
+            if (state.userMarker) {
+                state.userMarker.setLatLng(userLatLng);
+            } else {
+                state.userMarker = L.marker(userLatLng).addTo(state.map);
             }
             
-            // NEW EVENT LISTENERS
-            modeScorecardBtn.addEventListener('click', () => {
-                isScorecardEnabled = true;
-                modeSelectText.textContent = "Select Players and Names";
-                modeButtons.classList.add('hidden');
-                playerSetupOptions.classList.remove('hidden');
-                playerCountButtons[0].click(); // Select 1 player by default
-            });
+            updateDistances(userLatLng);
+        }
+
+        function updateDistances(userLatLng) {
+            const currentHole = courseData.holes[state.currentHoleIndex];
+            const holeLatLng = L.latLng(currentHole.lat, currentHole.lng);
             
-            modeGpsOnlyBtn.addEventListener('click', () => {
-                isScorecardEnabled = false;
-                players = [];
-                setupView.classList.add('hidden');
-                mainView.classList.remove('hidden');
-                scorecardBtn.classList.add('hidden');
-                updateUI();
-                watchGolfPosition();
-            });
-            
-            playerCountButtons.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    playerCountButtons.forEach(b => b.classList.remove('bg-blue-600', 'text-white'));
-                    btn.classList.add('bg-blue-600', 'text-white');
-                    selectedPlayerCount = parseInt(btn.dataset.count);
-                    createPlayerNameInputs(selectedPlayerCount);
-                });
-            });
-            
-            startScorecardRoundBtn.addEventListener('click', () => {
-                players = [];
-                for (let i = 0; i < selectedPlayerCount; i++) {
-                    const playerNameInput = document.getElementById(`player-name-${i}`);
-                    const name = playerNameInput ? playerNameInput.value || `Player ${i + 1}` : `Player ${i + 1}`;
-                    players.push({
-                        name: name,
-                        scores: new Array(courseData.holes.length).fill(null)
+            let frontDistance = '--';
+            let centerDistance = '--';
+            let backDistance = '--';
+
+            if (userLatLng) {
+                const distanceMeters = userLatLng.distanceTo(holeLatLng);
+                const distanceYards = (distanceMeters * 1.09361).toFixed(0);
+                
+                // Assuming front, center, back are on a line towards the user
+                const heading = L.CRS.Earth.bearing(holeLatLng, userLatLng);
+                const frontPoint = L.CRS.Earth.destination(holeLatLng, heading, distanceMeters - 10); // 10m short of center
+                const backPoint = L.CRS.Earth.destination(holeLatLng, heading, distanceMeters + 10); // 10m long of center
+                
+                frontDistance = userLatLng.distanceTo(frontPoint).toFixed(0);
+                centerDistance = distanceYards;
+                backDistance = userLatLng.distanceTo(backPoint).toFixed(0);
+            }
+
+            elements.distanceFront.textContent = frontDistance;
+            elements.distanceCenter.textContent = centerDistance;
+            elements.distanceBack.textContent = backDistance;
+        }
+
+        function handleError(error) {
+            console.error("Geolocation error: " + error.message);
+            // Handle error, e.g., show a message to the user
+        }
+
+        // Event Listeners for UI
+        elements.modeScorecardBtn.addEventListener('click', () => {
+            state.mode = "scorecard";
+            elements.modeButtons.classList.add('hidden');
+            elements.playerSetupOptions.classList.remove('hidden');
+        });
+
+        elements.modeGpsOnlyBtn.addEventListener('click', () => {
+            state.mode = "gps";
+            startRound();
+        });
+        
+        elements.playerCountBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const playerCount = parseInt(btn.dataset.count);
+                elements.playerNameInputs.innerHTML = '';
+                state.players = [];
+                for (let i = 0; i < playerCount; i++) {
+                    state.players.push({ name: `Player ${i + 1}`, scores: [] });
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.placeholder = `Player ${i + 1} Name`;
+                    input.classList.add('w-full', 'p-3', 'mb-2', 'rounded-xl', 'bg-zinc-100', 'dark:bg-zinc-700', 'text-center', 'font-medium', 'text-zinc-900', 'dark:text-zinc-100', 'placeholder-zinc-400', 'dark:placeholder-zinc-500', 'focus:outline-none', 'focus:ring-2', 'focus:ring-blue-500');
+                    input.dataset.index = i;
+                    input.addEventListener('input', (e) => {
+                        state.players[e.target.dataset.index].name = e.target.value || `Player ${parseInt(e.target.dataset.index) + 1}`;
                     });
+                    elements.playerNameInputs.appendChild(input);
                 }
-            
-                setupView.classList.add('hidden');
-                mainView.classList.remove('hidden');
-                scorecardBtn.classList.remove('hidden');
-                generatePlayerTabs();
-                updateUI();
-                watchGolfPosition();
+                elements.playerNameInputs.classList.remove('hidden');
+                document.querySelectorAll('.player-count-btn').forEach(b => b.classList.remove('bg-blue-500', 'text-white'));
+                btn.classList.add('bg-blue-500', 'text-white');
             });
+        });
 
-            // Helper functions
-            function haversine(lat1, lon1, lat2, lon2) {
-                const R = 6371e3;
-                const φ1 = lat1 * Math.PI / 180;
-                const φ2 = lat2 * Math.PI / 180;
-                const Δφ = (lat2 - lat1) * Math.PI / 180;
-                const Δλ = (lon2 - lon1) * Math.PI / 180;
-                const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                const d = R * c;
-                return d * 1.09361; // convert meters to yards
-            }
-            
-            const bunkerIcon = `<svg class="w-6 h-6 text-amber-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/><path d="M12 10V6c-2.21 0-4 1.79-4 4h4z"/></svg>`;
-            const waterIcon = `<svg class="w-6 h-6 text-cyan-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/><path d="M12 12c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/><path d="M12 8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>`;
-            
-            function updateUI() {
-                const hole = courseData.holes[currentHoleIndex];
-                document.getElementById('course-name').textContent = courseData.name;
-                document.getElementById('hole-info').textContent = `Hole ${hole.hole} | Par ${hole.par}`;
-            }
+        elements.startScorecardRoundBtn.addEventListener('click', startRound);
 
-            function displayDistances(position) {
-                const userLat = position.coords.latitude;
-                const userLon = position.coords.longitude;
-                const currentHole = courseData.holes[currentHoleIndex];
-                
-                const frontEl = document.getElementById('distance-front');
-                const centerEl = document.getElementById('distance-center');
-                const backEl = document.getElementById('distance-back');
-                
-                const hazardsLeftEl = document.getElementById('hazards-left');
-                const hazardsRightEl = document.getElementById('hazards-right');
-                hazardsLeftEl.innerHTML = '';
-                hazardsRightEl.innerHTML = '';
+        elements.nextHoleBtn.addEventListener('click', () => changeHole(1));
+        elements.prevHoleBtn.addEventListener('click', () => changeHole(-1));
+        
+        elements.endRoundBtn.addEventListener('click', endRound);
+        elements.scorecardEndRoundBtn.addEventListener('click', endRound);
+        
+        elements.mapBtn.addEventListener('click', showMap);
+        elements.scorecardBtn.addEventListener('click', showScorecard);
 
-                const distFront = haversine(userLat, userLon, currentHole.front[0], currentHole.front[1]);
-                const distCenter = haversine(userLat, userLon, currentHole.center[0], currentHole.center[1]);
-                const distBack = haversine(userLat, userLon, currentHole.back[0], currentHole.back[1]);
+        elements.scoreButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const scoreDiff = parseInt(btn.dataset.score);
+                const par = courseData.holes[state.currentHoleIndex].par;
+                const score = par + scoreDiff;
+                const playerIndex = state.isEditingScore ? state.currentPlayerIndex : state.currentPlayerIndex;
+                state.players[playerIndex].scores[state.currentHoleIndex] = score;
+                generateScorecard();
+                showScorecard();
+            });
+        });
 
-                frontEl.textContent = Math.round(distFront);
-                centerEl.textContent = Math.round(distCenter);
-                backEl.textContent = Math.round(distBack);
-                
-                if (currentHole.hazards && currentHole.hazards.length > 0) {
-                    currentHole.hazards.forEach(hazard => {
-                        const hazardDiv = document.createElement('div');
-                        let bgClass = '';
-                        let textClass = '';
-                        let iconHtml;
-                        let hazardName = '';
-                        let parentElement;
-
-                        const hazardNameLower = hazard.name.toLowerCase();
-                        if (hazardNameLower.includes("bunker")) {
-                            bgClass = 'bg-amber-100 dark:bg-amber-900';
-                            textClass = 'text-amber-800 dark:text-amber-200';
-                            iconHtml = bunkerIcon;
-                            hazardName = hazard.name;
-                        } else if (hazardNameLower.includes("water")) {
-                            bgClass = 'bg-cyan-100 dark:bg-cyan-900';
-                            textClass = 'text-cyan-800 dark:text-cyan-200';
-                            iconHtml = waterIcon;
-                            hazardName = hazard.name;
-                        } else {
-                            bgClass = 'bg-zinc-200 dark:bg-zinc-800';
-                            textClass = 'text-zinc-800 dark:text-zinc-200';
-                            iconHtml = '';
-                            hazardName = hazard.name;
-                        }
-
-                        if (hazardNameLower.includes("left")) {
-                            parentElement = hazardsLeftEl;
-                            hazardDiv.className = `flex justify-start items-center py-2 px-3 rounded-xl shadow-sm ${bgClass} ${textClass}`;
-                        } else if (hazardNameLower.includes("right")) {
-                            parentElement = hazardsRightEl;
-                            hazardDiv.className = `flex justify-end items-center py-2 px-3 rounded-xl shadow-sm ${bgClass} ${textClass}`;
-                        } else {
-                            parentElement = hazardsLeftEl;
-                            hazardDiv.className = `flex justify-start items-center py-2 px-3 rounded-xl shadow-sm ${bgClass} ${textClass}`;
-                        }
-
-                        if (hazard.front && hazard.back) {
-                            const distToFront = haversine(userLat, userLon, hazard.front[0], hazard.front[1]);
-                            const distToBack = haversine(userLat, userLon, hazard.back[0], hazard.back[1]);
-                            hazardDiv.innerHTML = `<div class="flex items-center space-x-2">${iconHtml}<span class="text-sm font-semibold">${hazardName}</span></div> <span class="text-lg font-bold">${Math.round(distToFront)} / ${Math.round(distToBack)}<span class="text-xs font-normal"> yds</span></span>`;
-                        } else if (hazard.location) {
-                            const distToHazard = haversine(userLat, userLon, hazard.location[0], hazard.location[1]);
-                            
-                            if (hazardNameLower.includes("right")) {
-                                hazardDiv.innerHTML = `<span class="text-lg font-bold">${Math.round(distToHazard)}<span class="text-xs font-normal"> yds</span></span> <div class="flex items-center space-x-2">${iconHtml}<span class="text-sm font-semibold">${hazardName}</span></div>`;
-                            } else {
-                                hazardDiv.innerHTML = `<div class="flex items-center space-x-2">${iconHtml}<span class="text-sm font-semibold">${hazardName}</span></div> <span class="text-lg font-bold">${Math.round(distToHazard)}<span class="text-xs font-normal"> yds</span></span>`;
-                            }
-                        }
-                        
-                        if (parentElement) {
-                            parentElement.appendChild(hazardDiv);
-                        }
-                    });
-                }
+        elements.scoreNextBtn.addEventListener('click', () => {
+            let nextPlayerIndex = state.currentPlayerIndex + 1;
+            let nextHoleIndex = state.currentHoleIndex;
+            if (nextPlayerIndex >= state.players.length) {
+                nextPlayerIndex = 0;
+                nextHoleIndex = state.currentHoleIndex + 1;
             }
 
-            function generatePlayerTabs() {
-                playerTabs.innerHTML = '';
-                players.forEach((player, index) => {
-                    const button = document.createElement('button');
-                    button.textContent = player.name;
-                    button.className = `player-tab-btn px-4 py-2 rounded-full font-semibold transition-colors ${index === currentPlayerIndex ? 'bg-blue-600 text-white' : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 hover:bg-zinc-300 dark:hover:bg-zinc-600'}`;
-                    button.dataset.playerIndex = index;
-                    playerTabs.appendChild(button);
-                });
+            if (nextHoleIndex >= courseData.holes.length) {
+                showScorecard();
+            } else {
+                state.isEditingScore = false;
+                state.currentPlayerIndex = nextPlayerIndex;
+                state.currentHoleIndex = nextHoleIndex;
+                showScoreEntry(courseData.holes[state.currentHoleIndex].hole);
             }
+        });
 
-            function updateScoreEntryTitle() {
-                const player = players[currentPlayerIndex];
-                document.getElementById('score-entry-title').textContent = `Score Hole ${courseData.holes[currentHoleIndex].hole} for ${player.name}`;
+        elements.scoreBackBtn.addEventListener('click', () => showScorecard());
+
+        function startRound() {
+            showView('main-view');
+            elements.courseName.textContent = courseData.name;
+            state.currentHoleIndex = 0;
+            updateHoleInfo();
+            if (state.mode === "scorecard") {
+                state.players.forEach(player => player.scores = new Array(courseData.holes.length).fill(null));
+                elements.scorecardBtn.classList.remove('hidden');
+                elements.scorecardEndRoundBtn.classList.remove('hidden');
+                elements.endRoundBtn.classList.add('hidden');
+            } else {
+                elements.scorecardBtn.classList.add('hidden');
+                elements.scorecardEndRoundBtn.classList.add('hidden');
+                elements.endRoundBtn.classList.remove('hidden');
             }
+            initMap();
+        }
 
-            function showScoreEntry(holeNumber) {
-                if (!isScorecardEnabled) return;
-                mainView.classList.add('hidden');
-                scorecardView.classList.add('hidden');
-                scoreEntryView.classList.remove('hidden');
-                updateScoreEntryTitle();
+        function endRound() {
+            // Confirm with user before ending
+            if (confirm("Are you sure you want to end the round?")) {
+                showView('setup-view');
+                // Reset state
+                state.mode = null;
+                state.players = [];
+                state.currentHoleIndex = 0;
+                state.scores = [];
+                state.isEditingScore = false;
+                state.currentPlayerIndex = 0;
+                elements.modeButtons.classList.remove('hidden');
+                elements.playerSetupOptions.classList.add('hidden');
+                elements.playerNameInputs.classList.add('hidden');
+                document.querySelectorAll('.player-count-btn').forEach(b => b.classList.remove('bg-blue-500', 'text-white'));
             }
+        }
 
-            function showMainView() {
-                mainView.classList.remove('hidden');
-                scorecardView.classList.add('hidden');
-                scoreEntryView.classList.add('hidden');
-                mapView.classList.add('hidden');
-            }
-
-            function saveScoreAndAdvance(score) {
-                if (!isScorecardEnabled) return;
-                
-                players[currentPlayerIndex].scores[currentHoleIndex] = parseInt(score);
-                document.getElementById('score-entry-message').textContent = `Score of ${score} saved for ${players[currentPlayerIndex].name}.`;
-                
-                if (isEditingScore) {
-                    isEditingScore = false;
-                    showScorecard();
-                } else {
-                    const allScoresEntered = players.every(p => p.scores[currentHoleIndex] !== null);
-                    if (allScoresEntered) {
-                        currentPlayerIndex = 0;
-                        if (currentHoleIndex < courseData.holes.length - 1) {
-                            currentHoleIndex++;
-                        }
-                        scoreEntryView.classList.add('hidden');
-                        mainView.classList.remove('hidden');
-                    } else {
-                        currentPlayerIndex++;
-                        generatePlayerTabs();
-                        updateScoreEntryTitle();
-                    }
-                }
-                
-                updateUI();
-                navigator.geolocation.getCurrentPosition(displayDistances);
-            }
-            
-            function watchGolfPosition() {
-                const messageArea = document.getElementById('message-area');
-                if ("geolocation" in navigator) {
-                    messageArea.textContent = 'Watching your location...';
-
-                    if (watcherId) {
-                        navigator.geolocation.clearWatch(watcherId);
-                    }
-
-                    watcherId = navigator.geolocation.watchPosition(
-                        (position) => {
-                            const userLat = position.coords.latitude;
-                            const userLon = position.coords.longitude;
-                            
-                            const currentHole = courseData.holes[currentHoleIndex];
-                            
-                            // Condition for auto-advance to score entry
-                            if (isScorecardEnabled) {
-                                if (currentHoleIndex === courseData.holes.length - 1) {
-                                    const distToClubhouse = haversine(userLat, userLon, clubhouseCoordinates[0], clubhouseCoordinates[1]);
-                                    const allScoresEntered = players.every(p => p.scores[currentHoleIndex] !== null);
-                                    if (distToClubhouse <= finalProximityThreshold && !allScoresEntered) {
-                                        showScoreEntry(currentHole.hole);
-                                        messageArea.textContent = `Near clubhouse! Please enter your score for the final hole.`;
-                                    } else {
-                                        displayDistances(position);
-                                        messageArea.textContent = 'Distances updated.';
-                                    }
-                                } else if (currentHoleIndex < courseData.holes.length - 1) {
-                                    const nextHole = courseData.holes[currentHoleIndex + 1];
-                                    const distToNextTee = haversine(userLat, userLon, nextHole.tee[0], nextHole.tee[1]);
-                                    const allScoresEntered = players.every(p => p.scores[currentHoleIndex] !== null);
-
-                                    if (distToNextTee <= proximityThreshold && !allScoresEntered) {
-                                        showScoreEntry(currentHole.hole);
-                                        messageArea.textContent = `Arrived at the next tee box. Please enter scores for the last hole.`;
-                                    } else {
-                                        displayDistances(position);
-                                        messageArea.textContent = 'Distances updated.';
-                                    }
-                                } else {
-                                    showScorecard();
-                                    messageArea.textContent = 'Round complete.';
-                                }
-                            } else {
-                                displayDistances(position);
-                                messageArea.textContent = 'Distances updated.';
-                            }
-                        },
-                        (error) => {
-                            messageArea.textContent = `Geolocation error: ${error.message}`;
-                        },
-                        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-                    );
-                } else {
-                    messageArea.textContent = "Geolocation is not supported by your browser.";
-                }
-            }
-
-            // WAKE LOCK FUNCTIONALITY
-            const wakeLockBtn = document.getElementById('wake-lock-btn');
-            const wakeLockText = document.getElementById('wake-lock-text');
-
-            async function toggleWakeLock() {
-                try {
-                    if (wakeLock !== null) {
-                        await wakeLock.release();
-                        wakeLock = null;
-                        wakeLockText.textContent = "Keep Screen On";
-                    } else {
-                        wakeLock = await navigator.wakeLock.request('screen');
-                        wakeLockText.textContent = "Screen On";
-                    }
-                } catch (err) {
-                    console.error(`${err.name}, ${err.message}`);
-                    wakeLockText.textContent = "Not Supported";
-                }
-            }
-
-            // MAP FUNCTIONALITY
-            function showMap() {
-                mainView.classList.add('hidden');
-                scorecardView.classList.add('hidden');
-                scoreEntryView.classList.add('hidden');
-                mapView.classList.remove('hidden');
-                
-                if (!map) {
-                    map = L.map('map-container').setView(courseData.holes[currentHoleIndex].center, 17);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    }).addTo(map);
-                }
-                
-                // This line is crucial for rendering the map correctly
-                map.invalidateSize();
+        function changeHole(direction) {
+            let newIndex = state.currentHoleIndex + direction;
+            if (newIndex >= 0 && newIndex < courseData.holes.length) {
+                state.currentHoleIndex = newIndex;
+                updateHoleInfo();
                 updateMapMarkers();
             }
+        }
 
-            function updateMapMarkers() {
-                // Remove all existing markers
-                if (userMarker) map.removeLayer(userMarker);
-                if (greenMarker) map.removeLayer(greenMarker);
-                if (teeMarker) map.removeLayer(teeMarker);
-                hazardMarkers.forEach(m => map.removeLayer(m));
-                hazardMarkers = [];
+        function updateHoleInfo() {
+            const currentHole = courseData.holes[state.currentHoleIndex];
+            elements.holeInfo.textContent = `Hole ${currentHole.hole} - Par ${currentHole.par}`;
+        }
 
-                // Add markers for current hole's tee and green
-                const currentHole = courseData.holes[currentHoleIndex];
-                greenMarker = L.marker(currentHole.center).addTo(map).bindPopup("Green Center").openPopup();
-                teeMarker = L.marker(currentHole.tee).addTo(map).bindPopup("Tee Box");
-                
-                // Add hazards for the current hole
-                if (currentHole.hazards) {
-                    currentHole.hazards.forEach(hazard => {
-                        let marker = L.marker(hazard.location).addTo(map).bindPopup(hazard.name);
-                        hazardMarkers.push(marker);
-                    });
-                }
-                
-                // Add user marker and center map
-                navigator.geolocation.getCurrentPosition(position => {
-                    const userLatLon = [position.coords.latitude, position.coords.longitude];
-                    if (userMarker) {
-                        userMarker.setLatLng(userLatLon);
-                    } else {
-                        userMarker = L.marker(userLatLon).addTo(map).bindPopup("Your Location").openPopup();
-                    }
-                    map.setView(userLatLon, 17);
-                });
+        function showScorecard() {
+            showView('scorecard-view');
+            if (state.mode === "scorecard") {
+                generateScorecard();
             }
+        }
 
-            // UI event listeners
-            wakeLockBtn.addEventListener('click', toggleWakeLock);
-            mapBtn.addEventListener('click', showMap);
-            backToGpsBtn.addEventListener('click', showMainView);
+        function showScoreEntry(holeNumber) {
+            showView('score-entry-view');
+            elements.scoreEntryTitle.textContent = `Hole ${holeNumber}`;
+            elements.scoreEntryMessage.textContent = `Enter score for ${state.players[state.currentPlayerIndex].name}:`;
+        }
 
-            document.getElementById('next-hole-btn').addEventListener('click', () => {
-                if (isScorecardEnabled) {
-                    const allScoresEntered = players.every(p => p.scores[currentHoleIndex] !== null);
-                    if (allScoresEntered) {
-                        if (currentHoleIndex === courseData.holes.length - 1) {
-                            showScorecard();
-                            document.getElementById('message-area').textContent = `Round complete!`;
-                        } else {
-                            currentHoleIndex++;
-                            updateUI();
-                            navigator.geolocation.getCurrentPosition(displayDistances);
-                            document.getElementById('message-area').textContent = `Moved to hole ${courseData.holes[currentHoleIndex].hole}.`;
-                        }
-                    } else {
-                        showScoreEntry(courseData.holes[currentHoleIndex].hole);
-                        document.getElementById('message-area').textContent = `Please enter scores for hole ${courseData.holes[currentHoleIndex].hole}.`;
+        function generateScorecard() {
+            let playerHeaders = ``;
+            state.players.forEach(player => {
+                playerHeaders += `<th class="p-2 border border-zinc-200 dark:border-zinc-600">${player.name.split(' ')[0]}</th>`;
+            });
+            elements.playerHeaders.innerHTML = playerHeaders;
+            elements.playerHeaders.colSpan = state.players.length;
+            
+            let scorecardHtml = '';
+            let totals = new Array(state.players.length).fill(0);
+            let strokes = new Array(state.players.length).fill(0);
+
+            courseData.holes.forEach((hole, holeIndex) => {
+                let rowHtml = `<tr class="border-b border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer">
+                                <td class="p-2 border border-zinc-200 dark:border-zinc-600 text-sm font-semibold">${hole.hole}</td>
+                                <td class="p-2 border border-zinc-200 dark:border-zinc-600 text-sm font-semibold">${hole.par}</td>`;
+                
+                state.players.forEach((player, playerIndex) => {
+                    const score = player.scores[holeIndex];
+                    let scoreHtml = '--';
+                    let scoreClass = '';
+                    if (score !== null) {
+                        scoreHtml = score;
+                        strokes[playerIndex] += score;
+                        const diff = score - hole.par;
+                        totals[playerIndex] += diff;
+                        scoreClass = getScoreClass(score, hole.par);
                     }
-                } else {
-                    if (currentHoleIndex < courseData.holes.length - 1) {
-                        currentHoleIndex++;
-                        updateUI();
-                        navigator.geolocation.getCurrentPosition(displayDistances);
-                        document.getElementById('message-area').textContent = `Moved to hole ${courseData.holes[currentHoleIndex].hole}.`;
-                    }
-                }
-            });
-
-            document.getElementById('prev-hole-btn').addEventListener('click', () => {
-                if (currentHoleIndex > 0) {
-                    currentHoleIndex--;
-                    updateUI();
-                    navigator.geolocation.getCurrentPosition(displayDistances);
-                    document.getElementById('message-area').textContent = `Moved to hole ${courseData.holes[currentHoleIndex].hole}.`;
-                }
-            });
-
-            document.getElementById('shot-tracker-btn').addEventListener('click', () => {
-                const shotTrackerBtn = document.getElementById('shot-tracker-btn');
-                const shotDistanceDisplay = document.getElementById('shot-distance-display');
-                if (shotStartLocation === null) {
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            shotStartLocation = [position.coords.latitude, position.coords.longitude];
-                            shotTrackerBtn.textContent = 'End Shot';
-                            shotTrackerBtn.classList.remove('bg-blue-600');
-                            shotTrackerBtn.classList.add('bg-red-600');
-                            shotDistanceDisplay.classList.add('hidden');
-                            document.getElementById('message-area').textContent = 'Shot started. Walk to your ball.';
-                        },
-                        (error) => {
-                            document.getElementById('message-area').textContent = `Error starting shot: ${error.message}`;
-                        }
-                    );
-                } else {
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            const endLocation = [position.coords.latitude, position.coords.longitude];
-                            const distance = haversine(shotStartLocation[0], shotStartLocation[1], endLocation[0], endLocation[1]);
-                            document.getElementById('shot-distance').textContent = Math.round(distance);
-                            shotDistanceDisplay.classList.remove('hidden');
-                            shotTrackerBtn.textContent = 'Start Shot';
-                            shotTrackerBtn.classList.remove('bg-red-600');
-                            shotTrackerBtn.classList.add('bg-blue-600');
-                            shotStartLocation = null;
-                            document.getElementById('message-area').textContent = 'Shot distance calculated.';
-                        },
-                        (error) => {
-                            document.getElementById('message-area').textContent = `Error ending shot: ${error.message}`;
-                        }
-                    );
-                }
-            });
-
-            document.getElementById('scorecard-btn').addEventListener('click', showScorecard);
-            document.getElementById('back-to-course-btn').addEventListener('click', showMainView);
-            document.getElementById('start-new-round-btn').addEventListener('click', () => {
-                location.reload();
-            });
-
-            document.querySelectorAll('.score-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    saveScoreAndAdvance(e.target.dataset.score);
+                    rowHtml += `<td class="p-2 border border-zinc-200 dark:border-zinc-600 font-bold ${scoreClass}" onclick="editScore(${holeIndex}, ${playerIndex})">${scoreHtml}</td>`;
                 });
+                scorecardHtml += rowHtml + '</tr>';
             });
 
-            document.getElementById('cancel-score-btn').addEventListener('click', () => {
-                currentPlayerIndex = 0;
-                generatePlayerTabs();
-                if (isEditingScore) {
-                    isEditingScore = false;
-                    showScorecard();
-                } else {
-                    showMainView();
-                }
-                document.getElementById('score-entry-message').textContent = '';
-            });
+            elements.scorecardBody.innerHTML = scorecardHtml;
 
-            playerTabs.addEventListener('click', (e) => {
-                if (e.target.classList.contains('player-tab-btn')) {
-                    currentPlayerIndex = parseInt(e.target.dataset.playerIndex);
-                    updateScoreEntryTitle();
-                    document.querySelectorAll('.player-tab-btn').forEach(btn => {
-                        btn.classList.remove('bg-blue-600', 'text-white');
-                        btn.classList.add('bg-zinc-200', 'dark:bg-zinc-700', 'text-zinc-900', 'dark:text-zinc-100');
-                    });
-                    e.target.classList.add('bg-blue-600', 'text-white');
-                }
-            });
-
-            function showScorecard() {
-                if (!isScorecardEnabled) return;
-                mainView.classList.add('hidden');
-                scoreEntryView.classList.add('hidden');
-                mapView.classList.add('hidden');
-                scorecardView.classList.remove('hidden');
-                updateScorecard();
-            }
-
-            function updateScorecard() {
-                const scorecardHeader = document.getElementById('scorecard-header');
-                const scoresList = document.getElementById('scores-list');
-                const scorecardTotals = document.getElementById('scorecard-totals');
-                
-                scorecardHeader.innerHTML = '<div class="font-bold">Hole</div><div class="font-bold">Par</div>';
-                players.forEach(player => {
-                    scorecardHeader.innerHTML += `<div class="font-bold text-center">${player.name}</div>`;
-                });
-                scorecardHeader.style.gridTemplateColumns = `repeat(${players.length + 2}, minmax(0, 1fr))`;
-                
-                scoresList.innerHTML = '';
-                let totals = new Array(players.length).fill(0);
-                let totalStrokes = new Array(players.length).fill(0);
-                
-                courseData.holes.forEach((hole, holeIndex) => {
-                    const row = document.createElement('div');
-                    row.className = 'grid gap-2';
-                    row.style.gridTemplateColumns = `repeat(${players.length + 2}, minmax(0, 1fr))`;
-                    row.innerHTML += `<div>${hole.hole}</div><div>${hole.par}</div>`;
-                    
-                    players.forEach((player, playerIndex) => {
-                        const score = player.scores[holeIndex] || '--';
-                        if (score !== '--') {
-                            totals[playerIndex] += score - hole.par;
-                            totalStrokes[playerIndex] += score;
-                        }
-                        const scoreClass = score !== '--' ? getScoreClass(score, hole.par) : '';
-                        
-                        const scoreEl = document.createElement('div');
-                        scoreEl.className = `text-center font-semibold cursor-pointer py-1 px-2 rounded-lg transition-colors ${scoreClass}`;
-                        scoreEl.textContent = score;
-                        scoreEl.dataset.holeIndex = holeIndex;
-                        scoreEl.dataset.playerIndex = playerIndex;
-                        if (score !== '--') {
-                            scoreEl.addEventListener('click', () => editScore(holeIndex, playerIndex));
-                        }
-                        const wrapperDiv = document.createElement('div');
-                        wrapperDiv.appendChild(scoreEl);
-                        row.appendChild(wrapperDiv);
-                    });
-                    scoresList.appendChild(row);
-                });
-                
-                scorecardTotals.innerHTML = '<div class="flex flex-col"><span class="font-bold text-lg">Totals</span><span class="text-xs">Par/Strokes</span></div>';
-                players.forEach((player, playerIndex) => {
-                    const totalClass = totals[playerIndex] > 0 ? 'text-red-300' : totals[playerIndex] < 0 ? 'text-green-300' : 'text-white';
+            // Generate totals row
+            let scorecardTotals = elements.scorecardTotals;
+            scorecardTotals.innerHTML = `
+                <div class="bg-zinc-100 dark:bg-zinc-700 rounded-bl-2xl p-4 text-center">
+                    <p class="font-bold text-lg text-zinc-800 dark:text-zinc-200">Totals</p>
+                </div>
+                ${state.players.map((player, playerIndex) => {
+                    const totalClass = totals[playerIndex] > 0 ? 'text-red-500 dark:text-red-400' : 'text-green-500 dark:text-green-400';
                     const sign = totals[playerIndex] > 0 ? '+' : '';
-                    scorecardTotals.innerHTML += `<div class="flex flex-col items-center">
-                        <span class="font-bold">${player.name}</span>
-                        <div class="flex items-baseline space-x-2">
-                            <span class="text-4xl font-black">${totalStrokes[playerIndex]}</span>
+                    return `
+                    <div class="bg-zinc-100 dark:bg-zinc-700 p-4 text-center ${playerIndex === state.players.length - 1 ? 'rounded-br-2xl' : ''}">
+                        <div class="flex flex-col items-center">
+                            <span class="text-xs text-zinc-500 dark:text-zinc-400 font-semibold">${strokes[playerIndex]}</span>
                             <span class="text-sm font-semibold ${totalClass}">${sign}${totals[playerIndex]}</span>
                         </div>
                     </div>`;
-                });
-                scorecardTotals.style.gridTemplateColumns = `repeat(${players.length + 1}, minmax(0, 1fr))`;
-            }
+                }).join('')}
+            `;
+            scorecardTotals.style.gridTemplateColumns = `repeat(${state.players.length + 1}, minmax(0, 1fr))`;
+        }
 
-            function editScore(holeIndex, playerIndex) {
-                isEditingScore = true;
-                currentHoleIndex = holeIndex;
-                currentPlayerIndex = playerIndex;
-                generatePlayerTabs();
-                showScoreEntry(courseData.holes[currentHoleIndex].hole);
-                document.getElementById('score-entry-message').textContent = `Editing score for ${players[playerIndex].name} on Hole ${courseData.holes[holeIndex].hole}.`;
-            }
+        function editScore(holeIndex, playerIndex) {
+            state.isEditingScore = true;
+            state.currentHoleIndex = holeIndex;
+            state.currentPlayerIndex = playerIndex;
+            showScoreEntry(courseData.holes[state.currentHoleIndex].hole);
+            document.getElementById('score-entry-message').textContent = `Editing score for ${state.players[playerIndex].name} on Hole ${courseData.holes[holeIndex].hole}.`;
+        }
 
-            function getScoreClass(score, par) {
-                const diff = score - par;
-                if (diff <= -2) return 'text-violet-500 font-extrabold';
-                if (diff === -1) return 'text-green-500 font-extrabold';
-                if (diff === 0) return 'text-blue-500 font-extrabold';
-                if (diff === 1) return 'text-orange-500 font-extrabold';
-                if (diff >= 2) return 'text-red-500 font-extrabold';
-                return '';
-            }
-        })();
+        function getScoreClass(score, par) {
+            const diff = score - par;
+            if (diff <= -2) return 'text-violet-500 font-extrabold'; // Eagle or better
+            if (diff === -1) return 'text-green-500 font-extrabold';  // Birdie
+            if (diff === 0) return 'text-blue-500 font-extrabold';    // Par
+            if (diff === 1) return 'text-orange-500 font-extrabold';  // Bogey
+            if (diff >= 2) return 'text-red-500 font-extrabold';      // Double Bogey or worse
+            return '';
+        }
     </script>
 </body>
 </html>
