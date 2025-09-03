@@ -294,7 +294,7 @@
 
             elements.wakeLockBtn.addEventListener('click', toggleWakeLock);
 
-            function showView(viewId) {
+            function showViewAndButtons(viewId) {
                 const views = ['setup-view', 'main-view', 'scorecard-view', 'score-entry-view'];
                 views.forEach(id => {
                     document.getElementById(id).classList.add('hidden', 'flex-col');
@@ -302,6 +302,15 @@
                 });
                 document.getElementById(viewId).classList.remove('hidden');
                 document.getElementById(viewId).classList.add('flex');
+
+                // Explicitly manage button visibility
+                if (state.mode === "scorecard") {
+                    elements.scorecardBtn.classList.toggle('hidden', viewId === 'scorecard-view');
+                    elements.mapBtn.classList.toggle('hidden', viewId !== 'scorecard-view');
+                } else { // "gps"
+                    elements.scorecardBtn.classList.add('hidden');
+                    elements.mapBtn.classList.add('hidden');
+                }
             }
 
             function initMap() {
@@ -316,7 +325,7 @@
                 if (!state.map) {
                     initMap();
                 }
-                showView('main-view');
+                showViewAndButtons('main-view');
                 setTimeout(() => {
                     state.map.invalidateSize();
                     updateMapMarkers();
@@ -370,13 +379,6 @@
                 let backDistance = '--';
 
                 if (userLatLng) {
-                    const distanceMeters = userLatLng.distanceTo(holeLatLng);
-                    const distanceYards = (distanceMeters * 1.09361).toFixed(0);
-                    
-                    const heading = L.CRS.Earth.bearing(holeLatLng, userLatLng);
-                    const frontPoint = L.CRS.Earth.destination(holeLatLng, heading, distanceMeters - 10);
-                    const backPoint = L.CRS.Earth.destination(holeLatLng, heading, distanceMeters + 10);
-                    
                     frontDistance = userLatLng.distanceTo(L.latLng(currentHole.front)).toFixed(0);
                     centerDistance = userLatLng.distanceTo(L.latLng(currentHole.center)).toFixed(0);
                     backDistance = userLatLng.distanceTo(L.latLng(currentHole.back)).toFixed(0);
@@ -469,26 +471,24 @@
             elements.scoreBackBtn.addEventListener('click', () => showScorecard());
 
             function startRound() {
-                showView('main-view');
+                showViewAndButtons('main-view');
                 elements.courseName.textContent = courseData.name;
                 state.currentHoleIndex = 0;
                 updateHoleInfo();
                 if (state.mode === "scorecard") {
                     state.players.forEach(player => player.scores = new Array(courseData.holes.length).fill(null));
-                    elements.scorecardBtn.classList.remove('hidden');
-                    elements.scorecardEndRoundBtn.classList.remove('hidden');
                     elements.endRoundBtn.classList.add('hidden');
+                    elements.scorecardEndRoundBtn.classList.remove('hidden');
                 } else {
-                    elements.scorecardBtn.classList.add('hidden');
-                    elements.scorecardEndRoundBtn.classList.add('hidden');
                     elements.endRoundBtn.classList.remove('hidden');
+                    elements.scorecardEndRoundBtn.classList.add('hidden');
                 }
                 initMap();
             }
 
             function endRound() {
                 if (confirm("Are you sure you want to end the round?")) {
-                    showView('setup-view');
+                    showViewAndButtons('setup-view');
                     state.mode = null;
                     state.players = [];
                     state.currentHoleIndex = 0;
@@ -516,14 +516,14 @@
             }
 
             function showScorecard() {
-                showView('scorecard-view');
+                showViewAndButtons('scorecard-view');
                 if (state.mode === "scorecard") {
                     generateScorecard();
                 }
             }
 
             function showScoreEntry(holeNumber) {
-                showView('score-entry-view');
+                showViewAndButtons('score-entry-view');
                 elements.scoreEntryTitle.textContent = `Hole ${holeNumber}`;
                 elements.scoreEntryMessage.textContent = `Enter score for ${state.players[state.currentPlayerIndex].name}:`;
             }
